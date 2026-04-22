@@ -72,8 +72,13 @@ const setupError      = document.getElementById('setup-error');
 // Démarrage
 // ---------------------------------------------------------------------------
 (function init() {
-  const config = loadConfig();
+  let config = loadConfig();
   if (config?.serverUrl && config?.token) {
+    // Migration : anciens configs sans chemin /ws/mobile
+    if (!config.serverUrl.includes('/ws/')) {
+      config.serverUrl = config.serverUrl.replace(/\/+$/, '') + '/ws/mobile';
+      saveConfig(config.serverUrl, config.token);
+    }
     activeConfig = config;
     showChatScreen();
     connect();
@@ -151,9 +156,12 @@ function onSaveConfig() {
     return;
   }
 
+  // Auto-correction : ajoute /ws/mobile si le chemin WebSocket est absent
+  const wsUrl = serverUrl.includes('/ws/') ? serverUrl : serverUrl.replace(/\/+$/, '') + '/ws/mobile';
+
   disconnectWs();
-  saveConfig(serverUrl, token);
-  activeConfig = { serverUrl, token };
+  saveConfig(wsUrl, token);
+  activeConfig = { serverUrl: wsUrl, token };
   showChatScreen();
   connect();
 }
