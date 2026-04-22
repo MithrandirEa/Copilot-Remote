@@ -3,6 +3,11 @@
   "displayName": "Copilot Remote Bridge",
   "description": "Contrôle déporté de GitHub Copilot via WebSocket",
   "version": "0.1.0",
+  "publisher": "MithrandirEa",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MithrandirEa/Copilot-Remote"
+  },
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Other"],
   "activationEvents": [],
@@ -43,6 +48,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
+    "build": "node esbuild.mjs",
     "compile": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "package": "node esbuild.mjs --production",
