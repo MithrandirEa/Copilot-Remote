@@ -51,23 +51,48 @@ export function deactivate(): void {
 async function autoConnect(context: vscode.ExtensionContext): Promise<void> {
   const token = await getToken(context.secrets);
   if (token) {
-    startClient(token, context);
+    startClient(token, getServerUrl(), context);
   }
 }
 
 async function commandConnect(context: vscode.ExtensionContext): Promise<void> {
-  // Récupérer ou demander le token
-  let token = await getToken(context.secrets);
+  // Demander l'URL (pré-remplie avec la valeur actuelle)
+  const currentUrl = getServerUrl();
+  const serverUrl = await vscode.window.showInputBox({
+    prompt: 'URL WSS du serveur relais',
+    value: currentUrl === 'wss://your-bridge-domain' ? 'wss://copilot.mithrandirea.info/ws/vscode' : currentUrl,
+    placeHolder: 'wss://votre-domaine/ws/vscode',
+    ignoreFocusOut: true,
+    validateInput: (v) => v.startsWith('wss://') ? null : "L'URL doit commencer par wss://",
+  });
+  if (!serverUrl) {
+    return; // annulé
+  }
+
+  // Mettre à jour le setting si l'URL a changé
+  if (serverUrl !== currentUrl) {
+    await vscode.workspace.getConfiguration('copilot-remote').update('serverUrl', serverUrl, vscode.ConfigurationTarget.Global);
+  }
+
+  // Demander le token (masqué, vide = garder l'existant)
+  const storedToken = await getToken(context.secrets);
+  const tokenInput = await vscode.window.showInputBox({
+    prompt: storedToken
+      ? 'Token d\'authentification (laisser vide pour conserver l\'actuel)'
+      : 'Token d\'authentification',
+    password: true,
+    placeHolder: storedToken ? '(token existant conservé si vide)' : 'Collez le AUTH_SECRET_TOKEN défini sur le VPS',
+    ignoreFocusOut: true,
+  });
+  if (tokenInput === undefined) {
+    return; // annulé (Échap)
+  }
+  const token = tokenInput.trim() || storedToken;
   if (!token) {
-    token = await vscode.window.showInputBox({
-      prompt: 'Token d\'authentification Copilot Remote',
-      password: true,
-      placeHolder: 'Collez le AUTH_SECRET_TOKEN défini sur le VPS',
-      ignoreFocusOut: true,
-    });
-    if (!token) {
-      return; // annulé
-    }
+    vscode.window.showErrorMessage('Copilot Remote: token requis.');
+    return;
+  }
+  if (tokenInput.trim()) {
     await storeToken(context.secrets, token);
   }
 
@@ -75,7 +100,7 @@ async function commandConnect(context: vscode.ExtensionContext): Promise<void> {
     client.dispose();
     client = null;
   }
-  startClient(token, context);
+  startClient(token, serverUrl, context);
 }
 
 function commandDisconnect(): void {
@@ -89,8 +114,7 @@ function commandDisconnect(): void {
   outputChannel?.appendLine(`[${new Date().toISOString()}] Déconnexion manuelle`);
 }
 
-function startClient(token: string, context: vscode.ExtensionContext): void {
-  const serverUrl = getServerUrl();
+function startClient(token: string, serverUrl: string, context: vscode.ExtensionContext): void {
   client = new BridgeClient(
     serverUrl,
     token,
