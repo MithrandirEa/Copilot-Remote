@@ -14,27 +14,25 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// Configuration (persistée en sessionStorage — effacée à la fermeture de l'onglet)
+// Configuration (persistée en localStorage — survit à la fermeture de l'onglet)
 // ---------------------------------------------------------------------------
 const CONFIG_KEY = 'copilot_remote_config';
 
 function loadConfig() {
   try {
-    return JSON.parse(sessionStorage.getItem(CONFIG_KEY) || 'null');
+    return JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null');
   } catch {
     return null;
   }
 }
 
 function saveConfig(serverUrl, token) {
-  // Stockage dans sessionStorage (effacé à la fermeture de l'onglet — Mihawk — Moyenne)
-  // Trade-off accepté sur appareil personnel : l'utilisateur ressaisit le token à chaque session.
-  // Si la persistance est souhaitée, basculer sur localStorage en connaissance des risques XSS.
-  sessionStorage.setItem(CONFIG_KEY, JSON.stringify({ serverUrl, token }));
+  // Stockage dans localStorage (persisté entre sessions sur appareil personnel)
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ serverUrl, token }));
 }
 
 function clearConfig() {
-  sessionStorage.removeItem(CONFIG_KEY);
+  localStorage.removeItem(CONFIG_KEY);
 }
 
 // ---------------------------------------------------------------------------
@@ -129,6 +127,7 @@ function showSetupScreen() {
 
   const config = loadConfig();
   if (config?.serverUrl) serverUrlInput.value = config.serverUrl;
+  if (config?.token) tokenInput.value = config.token;
 }
 
 function showChatScreen() {
