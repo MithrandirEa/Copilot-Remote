@@ -119,6 +119,8 @@ html, body {
 .error { color: var(--error); font-size: 0.85rem; min-height: 1.2em; }
 
 /* --- Écran de chat ------------------------------------------------------- */
+#setup-screen[hidden] { display: none; }
+
 #chat-screen {
   position: fixed;
   inset: var(--header-h) 0 0 0;
