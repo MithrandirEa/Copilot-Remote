@@ -69,6 +69,16 @@ const tokenInput      = document.getElementById('token-input');
 const setupError      = document.getElementById('setup-error');
 
 // ---------------------------------------------------------------------------
+// Utilitaires
+// ---------------------------------------------------------------------------
+function normalizeServerUrl(url) {
+  if (!url) return url;
+  const u = url.replace(/\/+$/, '');
+  if (!u.includes('/ws/')) return u + '/ws/mobile';
+  return u;
+}
+
+// ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
 (function init() {
@@ -144,7 +154,8 @@ function showChatScreen() {
 // Configuration
 // ---------------------------------------------------------------------------
 function onSaveConfig() {
-  const serverUrl = serverUrlInput.value.trim();
+  const rawUrl = serverUrlInput.value.trim();
+  const serverUrl = normalizeServerUrl(rawUrl);
   const token = tokenInput.value.trim();
 
   if (!serverUrl.startsWith('wss://')) {
@@ -157,11 +168,9 @@ function onSaveConfig() {
   }
 
   // Auto-correction : ajoute /ws/mobile si le chemin WebSocket est absent
-  const wsUrl = serverUrl.includes('/ws/') ? serverUrl : serverUrl.replace(/\/+$/, '') + '/ws/mobile';
-
   disconnectWs();
-  saveConfig(wsUrl, token);
-  activeConfig = { serverUrl: wsUrl, token };
+  saveConfig(serverUrl, token);
+  activeConfig = { serverUrl, token };
   showChatScreen();
   connect();
 }
