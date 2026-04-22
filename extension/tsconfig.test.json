@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "strict": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "vscode": ["src/test/__mocks__/vscode.ts"],
+      "ws": ["src/test/__mocks__/ws.ts"]
+    }
+  },
+  "ts-node": {
+    "transpileOnly": true
+  },
+  "include": ["src"]
+}

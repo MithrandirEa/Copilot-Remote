@@ -1,0 +1,283 @@
+/* ==========================================================================
+   Copilot Remote — Client mobile
+   Thème sombre, optimisé touch, responsive
+   ========================================================================== */
+
+/* --- Variables & reset -------------------------------------------------- */
+:root {
+  --bg:          #0d1117;
+  --surface:     #161b22;
+  --border:      #30363d;
+  --text:        #e6edf3;
+  --text-muted:  #8b949e;
+  --accent:      #388bfd;
+  --accent-dim:  #1f6feb33;
+  --user-bg:     #1c2128;
+  --copilot-bg:  #161b22;
+  --error:       #f85149;
+  --ok:          #3fb950;
+  --radius:      12px;
+  --input-h:     52px;
+  --header-h:    52px;
+  font-size:     16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* --- Header ------------------------------------------------------------- */
+#header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+#app-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.badge.connected    { background: #1a3a1f; color: var(--ok); }
+.badge.disconnected { background: #2d1b1b; color: var(--error); }
+.badge.connecting   { background: #1a2a3a; color: var(--accent); }
+
+/* --- Écran de configuration --------------------------------------------- */
+#setup-screen {
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 32px 20px;
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+#setup-screen h2 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
+#setup-screen label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+#setup-screen input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.95rem;
+  padding: 12px 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+#setup-screen input:focus { border-color: var(--accent); }
+
+#save-config-btn {
+  margin-top: 8px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 14px;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.15s;
+}
+#save-config-btn:active { opacity: 0.8; }
+
+.error { color: var(--error); font-size: 0.85rem; min-height: 1.2em; }
+
+/* --- Écran de chat ------------------------------------------------------- */
+#chat-screen {
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  display: flex;
+  flex-direction: column;
+}
+#chat-screen[hidden] { display: none; }
+
+/* Zone de messages */
+#chat-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* Espace pour la barre de saisie */
+  padding-bottom: calc(var(--input-h) + 24px);
+}
+
+/* Bulle de message générique */
+.message {
+  max-width: 92%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 0.92rem;
+  word-break: break-word;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+  align-self: flex-end;
+  background: var(--user-bg);
+  border: 1px solid var(--border);
+}
+
+.message.copilot {
+  align-self: flex-start;
+  background: var(--copilot-bg);
+  border: 1px solid var(--border);
+}
+
+.message.system {
+  align-self: center;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  border: none;
+  padding: 2px 0;
+}
+
+/* Curseur de streaming */
+.message.streaming::after {
+  content: '▋';
+  display: inline-block;
+  animation: blink 0.8s step-start infinite;
+  margin-left: 2px;
+  color: var(--accent);
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Rendu Markdown dans les bulles Copilot */
+.message p  { margin: 0 0 0.6em; }
+.message p:last-child { margin-bottom: 0; }
+.message code {
+  background: #1c2128;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  padding: 1px 5px;
+}
+.message pre {
+  background: #1c2128;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-x: auto;
+  padding: 10px 12px;
+  margin: 6px 0;
+}
+.message pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.82em;
+}
+.message ul, .message ol { padding-left: 1.4em; margin: 0.4em 0; }
+.message blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 10px;
+  color: var(--text-muted);
+  margin: 6px 0;
+}
+.message strong { color: #fff; }
+.message a { color: var(--accent); }
+
+/* Barre de saisie */
+#input-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 12px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+#chat-form {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+#message-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  max-height: 120px;
+  min-height: var(--input-h);
+  outline: none;
+  padding: 14px;
+  resize: none;
+  transition: border-color 0.15s;
+}
+#message-input:focus { border-color: var(--accent); }
+
+/* Boutons icône */
+#send-btn, #settings-btn {
+  align-items: center;
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 44px;
+  justify-content: center;
+  transition: opacity 0.15s;
+  width: 44px;
+}
+#send-btn:active, #settings-btn:active { opacity: 0.75; }
+#send-btn svg, #settings-btn svg { width: 18px; height: 18px; }
+
+#settings-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}

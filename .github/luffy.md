@@ -1,0 +1,157 @@
+# Plan de développement — Remote Copilot Bridge
+
+> Capitaine : Luffy  
+> Date de création : 2026-04-22  
+> Dernière mise à jour : 2026-04-22  
+> Statut : ✅ Terminé
+
+---
+
+## Synthèse du projet
+
+Créer une interface de contrôle déportée du **panel de conversation GitHub Copilot** (VS Code) accessible depuis un smartphone. L'objectif est de **piloter le panel Chat Copilot à distance** : envoyer des messages depuis le téléphone (qui seront injectés dans le chat VS Code) et recevoir les réponses en temps réel. Le système repose sur trois composants : une extension VS Code (TypeScript), un serveur relais FastAPI hébergé sur un **VPS Ionos** (configuration gérée par Sanji), et une web app mobile (HTML/JS/CSS). La communication se fait via WebSockets sécurisés (WSS).
+
+---
+
+## Questions ouvertes — Décisions actées
+
+| # | Question | Décision |
+|---|----------|-----------|
+| 1 | Périmètre : Chat uniquement, ou aussi l'Inline Chat ? | ✅ **Chat uniquement** — contrôle du panel de conversation (cf. capture) |
+| 2 | Latence VPS acceptable ? | ✅ **Acceptable** — optimiser la latence mais le VPS n'est pas pénalisant |
+| 3 | Gestion de plusieurs instances VS Code simultanées ? | ✅ **Architecture prévue, non implémentée en V1** (prévu V2) |
+| 4 | Syntax highlighting sur mobile (priorité V1 ?) | ✅ **Pas une priorité V1** — priorité = contrôle du panel de conversation |
+| 5 | API Copilot : `vscode.chat` ou simulation de commandes ? | ✅ **Option A — participant `vscode.chat`** : créer un participant `@remote`, soumettre via `vscode.chat.sendRequest()` |
+| 6 | Persistance des messages / nature des échanges | ✅ **Les messages du téléphone sont injectés dans le chat VS Code** (pas de chat parallèle) |
+
+### Détail Q5 — Possibilités d'accès à l'API Copilot
+
+L'extension doit pouvoir **injecter un message dans le chat VS Code** et **capturer la réponse**. Trois approches sont envisageables :
+
+| Approche | Description | Avantages | Inconvénients |
+|----------|-------------|-----------|---------------|
+| **A — `vscode.chat` participant** | Créer un participant de chat custom (`@remote`) qui reçoit les messages du serveur et les soumet à Copilot via `vscode.chat.sendRequest()` | API officielle (expérimentale), réponse structurée | L'utilisateur doit mentionner `@remote` dans le chat ; ne pilote pas le chat natif Copilot directement |
+| **B — `executeCommand`** | Utiliser `workbench.action.chat.open` + `workbench.action.chat.submit` pour injecter du texte et soumettre programmatiquement | Pilote le panel natif Copilot | API non documentée, fragile aux mises à jour VS Code |
+| **C — Clipboard + commande** | Placer le texte dans le presse-papiers via `vscode.env.clipboard.writeText()`, puis simuler un `paste` + `submit` dans le chat | Simple à implémenter | Hack, pollue le presse-papiers, peu fiable |
+
+> **Décision actée** : Approche A. L'extension enregistre un participant de chat `@remote` qui reçoit les messages du serveur et les soumet à Copilot via `vscode.chat.sendRequest()`.
+
+---
+
+## Phases de développement
+
+### Phase 1 — Fondations & structure du projet
+> Statut : ✅ Terminée (2026-04-22)
+
+- [x] Initialiser la structure des dossiers (`extension/`, `server/`, `client/`) — Agent(s) : Luffy
+- [x] Créer les fichiers de configuration de base (`package.json`, `tsconfig.json`, `requirements.txt`, `.env.example`, `.gitignore`) — Agent(s) : Luffy
+- [x] Scaffolding de l'extension VS Code (manifest, point d'entrée TypeScript, esbuild, .vscodeignore) — Agent(s) : **Franky** (tooling) + Luffy
+- [x] Scaffolding du serveur FastAPI (structure des routes, skeleton `main.py`) — Agent(s) : Luffy + **Sanji**
+- [x] Consulter **Sanji** pour les spécificités du VPS Ionos → Dockerfile, docker-compose.yml, bloc Caddyfile, `.env.example` générés — Agent(s) : **Sanji**
+- [x] Implémenter le module d'authentification (`auth.py` — HMAC secret partagé 256 bits, timeout 5s) — Agent(s) : **Sanji**
+
+### Phase 2 — Serveur relais FastAPI
+> Statut : ✅ Terminée (2026-04-22)
+
+- [x] Implémenter le protocole de messages JSON (prompt, response_chunk, response_end, status, error) — Agent(s) : implémentation
+- [x] Implémenter le routage `mobile → vscode` et `vscode → mobile` — Agent(s) : implémentation
+- [x] Notifier le mobile du statut VS Code (connexion/déconnexion) — Agent(s) : implémentation
+- [x] Gérer les déconnexions proprement (finally, reset globals) — Agent(s) : implémentation
+- [x] Tests unitaires `auth.py` (7 cas) et tests d'intégration `main.py` (7 cas) — 14/14 ✅ — Agent(s) : **Chopper**
+
+### Phase 3 — Extension VS Code
+> Statut : ✅ Terminée (2026-04-22)
+
+> Approche retenue : **Participant `vscode.chat`** — enregistrement d'un participant `@remote` qui injecte les messages reçus dans le chat Copilot.
+
+- [x] Implémenter la connexion WebSocket vers le serveur VPS Ionos (`bridgeClient.ts` — reconnexion exponentielle, auth token) — Agent(s) : implémentation
+- [x] **[CŒUR]** Injecter les messages reçus du téléphone dans le panel Chat Copilot VS Code via `workbench.action.chat.open` + `@remote` — Agent(s) : implémentation
+- [x] **[CŒUR]** Capturer les réponses de Copilot (streaming `vscode.lm`) et les relayer vers le serveur (`response_chunk` / `response_end`) — Agent(s) : implémentation
+- [x] Participant `@remote` avec historique de conversation (`participant.ts`) — Agent(s) : implémentation
+- [x] Commandes VS Code : connect, disconnect, clearToken — Agent(s) : implémentation
+- [x] Gestion du token d'authentification via `vscode.SecretStorage` + reconnexion auto au démarrage — Agent(s) : implémentation
+- [x] Configuration `copilot-remote.serverUrl` dans les settings VS Code — Agent(s) : implémentation
+- [x] Tests unitaires BridgeClient (8 cas) + config (6 cas) — 14/14 ✅ — Agent(s) : **Chopper**
+
+### Phase 4 — Interface mobile (Web App)
+> Statut : ✅ Terminée (2026-04-22)
+
+- [x] Structure HTML complète (chat log, saisie textarea, envoi, indicateur statut, écran config) — Agent(s) : implémentation
+- [x] Connexion WebSocket côté client (JS) avec auth token + reconnexion exponentielle — Agent(s) : implémentation
+- [x] Écran de configuration (serverUrl + token, persisté dans localStorage) — Agent(s) : implémentation
+- [x] Affichage des messages avec rendu Markdown (marked.js v15, local, pas de CDN) — Agent(s) : implémentation
+- [x] Streaming des réponses Copilot (response_chunk en temps réel + curseur animé) — Agent(s) : implémentation
+- [x] Indicateur de statut de connexion (connecté / déconnecté / connexion…) — Agent(s) : implémentation
+- [x] CSS responsive thème sombre, optimisé touch, safe-area iOS — Agent(s) : implémentation
+- [x] CSP stricte (pas de CDN externe, connect-src wss:// uniquement) — Agent(s) : implémentation
+
+### Phase 5 — Sécurité & intégration
+> Statut : ✅ Terminée (2026-04-22)
+
+- [x] Audit sécurité global (OWASP WebSocket, injection, exposition de tokens) — Agent(s) : **Mihawk**
+  - DOMPurify ajouté dans client (XSS DOM — Haute)
+  - Race condition anti-éviction (1008) + limite taille 64 Ko (1009) dans main.py — Haute
+  - Validation JSON/type relay dans main.py — Moyenne
+  - Container non-root dans Dockerfile — Moyenne
+  - Validation `client_token` comme str dans auth.py — Moyenne
+  - `sessionStorage` au lieu de `localStorage` dans app.js — Moyenne
+  - `replaceAll` dans bridgeClient.ts — Faible
+  - 11 nouveaux tests sécurité Chopper — 25/25 ✅
+- [x] Vérifier la configuration WSS / certificat SSL sur le VPS Ionos — Agent(s) : **Sanji**
+  - `flush_interval -1` + `dial_timeout 10s` ajoutés dans caddy-block.conf (WebSocket streaming)
+  - Guide de déploiement `server/deploy.md` créé
+
+### Phase 6 — Documentation
+> Statut : ✅ Terminée (2026-04-22)
+
+- [x] Rédiger le README final (`README.md` à la racine) — Agent(s) : **Robin**
+- [x] Documenter l'API du serveur (`server/API.md`) — Agent(s) : **Robin**
+- [x] Documenter la configuration de l'extension VS Code (`extension/README.md`) — Agent(s) : **Robin**
+
+### Phase 7 — Déploiement
+> Statut : ✅ Terminée (2026-04-22)
+
+- [x] Créer `server/Makefile` (build, up, down, restart, logs, health, test, clean) — Agent(s) : **Sanji**
+- [x] Créer `deploy.sh` (script rsync + SSH + healthcheck, machine locale → VPS) — Agent(s) : **Sanji**
+
+---
+
+## Assignation des agents
+
+| Agent | Tâches assignées | Statut |
+|-------|-----------------|--------|
+| **Luffy** | Structure projet, orchestration, copilot-instructions.md, luffy.md | ✅ Phase 1 terminée |
+| **Franky** | Choix du tooling extension VS Code (esbuild retenu) | ✅ Terminé |
+| **Sanji** | VPS Ionos (config, SSL, déploiement, Docker), auth module | ✅ Phase 1 terminée |
+| **Usopp** | Problèmes bloquants techniques si rencontrés (API, WSS, etc.) | ⬜ Si nécessaire |
+| **Mihawk** | Audit sécurité authentification + audit global OWASP | ⬜ À faire |
+| **Chopper** | Tests serveur (14/14 ✅), tests extension, interface mobile, intégration E2E | 🔵 Phase 2 terminée |
+| **Sanji** | VPS Ionos (config, SSL, déploiement, Docker), filtrage IP | ⬜ À faire |
+| **Robin** | README final, doc API, guide déploiement, doc extension | ⬜ À faire |
+
+---
+
+## Dépendances entre tâches
+
+```
+Phase 1 (fondations)
+  └─> Phase 2 (serveur) ──┐
+  └─> Phase 3 (extension) ─┤──> Phase 5 (sécurité + intégration E2E)
+  └─> Phase 4 (mobile) ───┘
+                              └─> Phase 6 (documentation)
+                              └─> Phase 7 (déploiement)
+```
+
+**Point d'attention Phase 3** : L'API `vscode.chat` est expérimentale — un changement VS Code pourrait la casser. Libéllés des contributions à surveiller. L'extension doit gérer gracieusement le cas où le participant `@remote` n'est pas disponible.
+
+---
+
+## Risques identifiés
+
+| Risque | Probabilité | Impact | Mitigation |
+|--------|------------|--------|------------|
+| API `vscode.chat` instable (expérimentale, changements VS Code) | Moyenne | Élevé | Surveiller les releases VS Code ; fallback `executeCommand` prévu en V2 |
+| Latence VPS trop élevée pour une UX fluide | Faible | Modéré | Accepté — optimiser les échanges WS (messages compacts, pas de polling) |
+| Certificat SSL VPS Ionos mal configuré pour WSS | Faible | Élevé | Sanji valide la config en Phase 1 (consultation) et Phase 5 (validation) |
+| Fuite de token d'authentification | Faible | Critique | Mihawk audite, `vscode.SecretStorage` obligatoire |
+| Perte de messages en cas de déconnexion | Moyenne | Faible | Reconnexion automatique + buffer côté serveur (V2) |
