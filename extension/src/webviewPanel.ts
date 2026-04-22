@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { randomUUID } from 'crypto';
+import { ConversationStore } from './conversationStore';
 
 // ---------------------------------------------------------------------------
 // Types des messages échangés entre le WebView et l'extension
@@ -17,7 +18,8 @@ export type ExtensionMessage =
   | { type: 'message'; role: 'user' | 'assistant'; text: string; id: string }
   | { type: 'chunk'; text: string; id: string }
   | { type: 'response_end'; id: string }
-  | { type: 'status'; connected: boolean };
+  | { type: 'status'; connected: boolean }
+  | { type: 'history_sync'; messages: Array<{ role: 'user' | 'assistant'; text: string; id: string }> };
 
 // ---------------------------------------------------------------------------
 // Panel WebView (singleton)
@@ -104,7 +106,11 @@ export class ConversationPanel {
             break;
 
           case 'ready':
-            // WebView initialisé — rien à faire ici pour l'instant
+            // WebView initialisé — envoyer l'historique existant
+            void this._panel.webview.postMessage({
+              type: 'history_sync',
+              messages: ConversationStore.instance.getAll(),
+            });
             break;
         }
       },

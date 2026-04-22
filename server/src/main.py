@@ -12,9 +12,13 @@ Protocole de messages (JSON) :
   VS Code → Mobile :
     {"type": "response_chunk", "text": "...", "id": "<uuid>"}  ← streaming
     {"type": "response_end",   "id": "<uuid>"}                 ← fin de réponse
+    {"type": "history_sync",  "messages": [...]}               ← historique complet
 
   Serveur → Mobile (statut) :
     {"type": "status", "vscode_connected": true|false}
+
+  Serveur → VS Code (notification interne) :
+    {"type": "mobile_connected"}  ← déclenché à la connexion du mobile
 """
 import json
 import logging
@@ -36,7 +40,7 @@ _mobile_ws: WebSocket | None = None
 MAX_MESSAGE_BYTES: int = 64 * 1024  # 64 Ko
 
 # Types de messages autorisés depuis VS Code → mobile (Mihawk — Moyenne)
-_VSCODE_ALLOWED_TYPES = frozenset({"response_chunk", "response_end", "error"})
+_VSCODE_ALLOWED_TYPES = frozenset({"response_chunk", "response_end", "error", "history_sync"})
 # Types de messages autorisés depuis mobile → VS Code
 _MOBILE_ALLOWED_TYPES = frozenset({"prompt"})
 
@@ -131,6 +135,13 @@ async def ws_mobile(websocket: WebSocket) -> None:
 
     _mobile_ws = websocket
     logger.info("Client mobile connecté")
+
+    # Notifier VS Code que le mobile vient de se connecter (pour déclencher history_sync)
+    if _vscode_ws is not None:
+        try:
+            await _vscode_ws.send_text(json.dumps({"type": "mobile_connected"}))
+        except Exception:
+            pass
 
     # Informer immédiatement le mobile de l'état VS Code
     await _send_status_to_mobile(connected=_vscode_ws is not None)

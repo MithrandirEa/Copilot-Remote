@@ -45,24 +45,24 @@ Remplacer le panel Chat intégré de VS Code par un **WebView personnalisé** da
 ## Phases de développement v2
 
 ### Phase 1 — Design system partagé (F6)
-> Statut : ⬜ À faire  
+> Statut : ✅ Terminé (commit `39c8a5e`)  
 > Priorité : **Must-have**
 
-- [ ] Extraire les variables CSS de `client/style.css` vers un fichier `shared/theme.css` — Agent(s) : **Law**
-- [ ] Créer `extension/webview/` — dossier pour les assets HTML/CSS/JS du WebView — Agent(s) : **Law**
-- [ ] Symlink ou build step pour partager `shared/theme.css` entre `client/` et `extension/webview/` — Agent(s) : **Franky**
-- [ ] Vérification qualité du design system — Agent(s) : **Mihawk**
+- [x] Extraire les variables CSS de `client/style.css` vers un fichier `shared/theme.css` — Agent(s) : **Law**
+- [x] Créer `extension/webview/` — dossier pour les assets HTML/CSS/JS du WebView — Agent(s) : **Law**
+- [x] Symlink ou build step pour partager `shared/theme.css` entre `client/` et `extension/webview/` — Agent(s) : **Franky**
+- [x] Vérification qualité du design system — Agent(s) : **Mihawk**
 
 ### Phase 2 — WebView panel VS Code (F1)
-> Statut : ⬜ À faire  
+> Statut : ✅ Terminé (commit `3a37ed2`)  
 > Priorité : **Must-have**
 
-- [ ] Créer `extension/webview/panel.html` — clone de `client/index.html` adapté au WebView VS Code — Agent(s) : **Implémentation directe**
-- [ ] Créer `extension/src/webviewPanel.ts` — classe `ConversationPanel` avec `vscode.WebviewPanel` — Agent(s) : **Implémentation directe**
-- [ ] Remplacer `workbench.action.chat.open` par l'ouverture du WebView dans `extension.ts` — Agent(s) : **Implémentation directe**
-- [ ] Communication bidirectionnelle WebView ↔ Extension via `postMessage` — Agent(s) : **Implémentation directe**
-- [ ] Commande `copilot-remote.openPanel` pour ouvrir le WebView — Agent(s) : **Implémentation directe**
-- [ ] Tests unitaires du WebView panel — Agent(s) : **Chopper**
+- [x] Créer `extension/webview/panel.html` — clone de `client/index.html` adapté au WebView VS Code — Agent(s) : **Law**
+- [x] Créer `extension/src/webviewPanel.ts` — classe `ConversationPanel` avec `vscode.WebviewPanel` — Agent(s) : **Law**
+- [x] Remplacer `workbench.action.chat.open` par l'ouverture du WebView dans `extension.ts` — Agent(s) : **Law**
+- [x] Communication bidirectionnelle WebView ↔ Extension via `postMessage` — Agent(s) : **Law**
+- [x] Commande `copilot-remote.openPanel` pour ouvrir le WebView — Agent(s) : **Law**
+- [ ] Tests unitaires du WebView panel — Agent(s) : **Chopper** (Phase 7)
 
 ### Phase 3 — Synchronisation bidirectionnelle (F2)
 > Statut : ⬜ À faire  

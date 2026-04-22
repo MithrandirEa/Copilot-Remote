@@ -6,25 +6,28 @@ export type IncomingMessage =
   | { type: 'prompt'; text: string; id: string }
   | { type: 'status'; vscode_connected: boolean }
   | { type: 'auth_ok' }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'mobile_connected' };   // serveur notifie VS Code que le mobile vient de se connecter
 
 export type OutgoingMessage =
   | { type: 'auth'; token: string }
   | { type: 'response_chunk'; text: string; id: string }
-  | { type: 'response_end'; id: string };
+  | { type: 'response_end'; id: string }
+  | { type: 'history_sync'; messages: Array<{ role: 'user' | 'assistant'; text: string; id: string }> };
 
 type PromptHandler = (text: string, id: string) => void;
 
 /**
  * Client WebSocket vers le serveur relais VPS.
  * Gère l'authentification initiale, la reconnexion automatique
- * et l'exposition d'un callback pour les messages entrants.
+ * et l'exposition de callbacks pour les messages entrants.
  */
 export class BridgeClient {
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
   private readonly outputChannel: vscode.OutputChannel;
+  private readonly onMobileConnected: (() => void) | undefined;
 
   // Délai de reconnexion en ms (exponentiel plafonné à 30s)
   private reconnectDelay = 2000;
@@ -36,9 +39,11 @@ export class BridgeClient {
     private readonly serverUrl: string,
     private readonly token: string,
     private readonly onPrompt: PromptHandler,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    onMobileConnected?: () => void
   ) {
     this.outputChannel = outputChannel;
+    this.onMobileConnected = onMobileConnected;
   }
 
   /** Établit la connexion WebSocket. */
@@ -89,6 +94,12 @@ export class BridgeClient {
 
       if (msg.type === 'prompt') {
         this.onPrompt(msg.text, msg.id);
+        return;
+      }
+
+      if (msg.type === 'mobile_connected') {
+        // Le serveur signale qu'un client mobile vient de se connecter
+        this.onMobileConnected?.();
         return;
       }
 

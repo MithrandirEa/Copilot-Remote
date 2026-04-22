@@ -115,6 +115,14 @@ window.addEventListener('message', (event) => {
       // Mise à jour de l'état de connexion au serveur
       setStatus(message.connected ? 'connected' : 'disconnected');
       break;
+
+    case 'history_sync':
+      // Restaurer l'historique de conversation (reconnexion WebView ou mobile)
+      chatLog.innerHTML = '';
+      for (const entry of message.messages) {
+        appendMessage(entry.role, entry.text);
+      }
+      break;
   }
 });
 
