@@ -3,7 +3,159 @@
 > Capitaine : Luffy  
 > Date de création : 2026-04-22  
 > Dernière mise à jour : 2026-04-22  
-> Statut : ✅ Terminé
+> Statut : 🔵 En cours — v2 en développement
+
+---
+
+## v1.0.0 — Version de référence ✅ Terminée (tag `v1.0.0`)
+
+Interface de contrôle déportée opérationnelle : client mobile ↔ bridge FastAPI ↔ extension VS Code via WSS. Branche `main` stable.
+
+---
+
+## v2 — Interface unifiée & contrôle total du panel
+
+> Branche : `development`  
+> Objectif : Les interfaces mobile ET VS Code doivent se ressembler et être entièrement contrôlables par l'utilisateur.
+
+### Vision v2
+
+Remplacer le panel Chat intégré de VS Code par un **WebView personnalisé** dans l'extension. Ce WebView partage le même HTML/CSS que le client mobile — une seule source de vérité pour le design. Les deux interfaces affichent la même conversation en temps réel.
+
+```
+[Smartphone]    <--WSS-->   [FastAPI/VPS]   <--WSS-->   [Extension VS Code]
+  client/                    /ws/mobile                     /ws/vscode
+  index.html                 /ws/vscode                   WebView (shared UI)
+  app.js                                                   extension/webview/
+  style.css ──────────────────────────────────────── shared ──────────────────
+```
+
+### Protocole v2 (nouveaux types de messages)
+
+| Type | Direction | Description |
+|------|-----------|-------------|
+| `stop` | Mobile/WebView → Bridge → Extension | Arrêter la génération en cours |
+| `model_change` | Mobile/WebView → Bridge → Extension | Changer le modèle LLM |
+| `history_sync` | Extension → Bridge → Mobile/WebView | Synchroniser l'historique complet |
+| `history_clear` | Mobile/WebView → Bridge → Extension | Vider l'historique |
+| `status_full` | Extension → Bridge → Mobile/WebView | Statut complet (modèle, nb messages, latence) |
+
+---
+
+## Phases de développement v2
+
+### Phase 1 — Design system partagé (F6)
+> Statut : ⬜ À faire  
+> Priorité : **Must-have**
+
+- [ ] Extraire les variables CSS de `client/style.css` vers un fichier `shared/theme.css` — Agent(s) : **Law**
+- [ ] Créer `extension/webview/` — dossier pour les assets HTML/CSS/JS du WebView — Agent(s) : **Law**
+- [ ] Symlink ou build step pour partager `shared/theme.css` entre `client/` et `extension/webview/` — Agent(s) : **Franky**
+- [ ] Vérification qualité du design system — Agent(s) : **Mihawk**
+
+### Phase 2 — WebView panel VS Code (F1)
+> Statut : ⬜ À faire  
+> Priorité : **Must-have**
+
+- [ ] Créer `extension/webview/panel.html` — clone de `client/index.html` adapté au WebView VS Code — Agent(s) : **Implémentation directe**
+- [ ] Créer `extension/src/webviewPanel.ts` — classe `ConversationPanel` avec `vscode.WebviewPanel` — Agent(s) : **Implémentation directe**
+- [ ] Remplacer `workbench.action.chat.open` par l'ouverture du WebView dans `extension.ts` — Agent(s) : **Implémentation directe**
+- [ ] Communication bidirectionnelle WebView ↔ Extension via `postMessage` — Agent(s) : **Implémentation directe**
+- [ ] Commande `copilot-remote.openPanel` pour ouvrir le WebView — Agent(s) : **Implémentation directe**
+- [ ] Tests unitaires du WebView panel — Agent(s) : **Chopper**
+
+### Phase 3 — Synchronisation bidirectionnelle (F2)
+> Statut : ⬜ À faire  
+> Priorité : **Must-have**
+
+- [ ] `ConversationStore` dans l'extension — source de vérité de l'historique (tableau de messages) — Agent(s) : **Implémentation directe**
+- [ ] Message `history_sync` : lors de la connexion mobile, l'extension envoie l'historique complet — Agent(s) : **Implémentation directe**
+- [ ] Diffusion simultanée des chunks vers le WebView ET le mobile — Agent(s) : **Implémentation directe**
+- [ ] Nouveau type de message `history_sync` dans le bridge FastAPI — Agent(s) : **Implémentation directe**
+- [ ] Tests d'intégration synchronisation — Agent(s) : **Chopper**
+
+### Phase 4 — Historique & contrôles (F4 + F5)
+> Statut : ⬜ À faire  
+> Priorité : **Must-have (F4) / Should-have (F5)**
+
+- [ ] Bouton "Vider l'historique" dans les deux interfaces — Agent(s) : **Implémentation directe**
+- [ ] Message `history_clear` propagé aux deux interfaces — Agent(s) : **Implémentation directe**
+- [ ] Bouton "Stop" visible pendant le streaming dans les deux interfaces — Agent(s) : **Implémentation directe**
+- [ ] Signal `stop` — annulation du `sendRequest` Copilot via `CancellationToken` — Agent(s) : **Implémentation directe**
+- [ ] Propagation `stop` via bridge → extension — Agent(s) : **Implémentation directe**
+
+### Phase 5 — Sélection du modèle LLM (F3)
+> Statut : ⬜ À faire  
+> Priorité : **Should-have**
+
+- [ ] Dropdown modèle dans les deux interfaces — Agent(s) : **Implémentation directe**
+- [ ] Message `model_change` propagé via bridge — Agent(s) : **Implémentation directe**
+- [ ] `participant.ts` utilise le modèle sélectionné (plus de `gpt-4o` hardcodé) — Agent(s) : **Implémentation directe**
+
+### Phase 6 — Statuts enrichis (F7)
+> Statut : ⬜ À faire  
+> Priorité : **Should-have**
+
+- [ ] Message `status_full` : modèle actif, nb messages, état connexions — Agent(s) : **Implémentation directe**
+- [ ] Indicateurs de statut dans les deux interfaces — Agent(s) : **Implémentation directe**
+
+### Phase 7 — Tests & qualité
+> Statut : ⬜ À faire
+
+- [ ] Tests unitaires complets (WebView, ConversationStore, nouveaux messages) — Agent(s) : **Chopper**
+- [ ] Revue de code architecture v2 — Agent(s) : **Mihawk**
+- [ ] Audit sécurité des nouveaux messages — Agent(s) : **Mihawk**
+
+### Phase 8 — Documentation & déploiement
+> Statut : ⬜ À faire
+
+- [ ] Mettre à jour le README avec les nouvelles fonctionnalités v2 — Agent(s) : **Robin**
+- [ ] Mettre à jour `copilot-instructions.md` — Agent(s) : **Luffy**
+- [ ] Build VSIX v2 + déploiement extension — Agent(s) : **Implémentation directe**
+- [ ] Déploiement bridge v2 sur VPS — Agent(s) : **Sanji**
+- [ ] Tag `v2.0.0` sur `main` après merge — Agent(s) : **Luffy**
+
+---
+
+## Assignation des agents
+
+| Agent | Tâches assignées | Statut |
+|-------|-----------------|--------|
+| **Law** | Design system partagé, restructuration dossiers | ⬜ |
+| **Franky** | Build step CSS partagé | ⬜ |
+| **Chopper** | Tests unitaires WebView, ConversationStore, intégration | ⬜ |
+| **Mihawk** | Revue architecture v2, audit sécurité | ⬜ |
+| **Sanji** | Déploiement bridge v2 sur VPS | ⬜ |
+| **Robin** | Documentation v2 | ⬜ |
+
+---
+
+## Dépendances entre phases
+
+```
+Phase 1 (Design system) ──► Phase 2 (WebView)
+Phase 2 (WebView)        ──► Phase 3 (Sync)
+Phase 3 (Sync)           ──► Phase 4 (Historique/Stop)
+Phase 4                  ──► Phase 5 (Modèle LLM)
+Phase 5                  ──► Phase 6 (Statuts)
+Phase 6                  ──► Phase 7 (Tests)
+Phase 7                  ──► Phase 8 (Doc/Deploy)
+```
+
+---
+
+## Risques identifiés
+
+| Risque | Impact | Mitigation |
+|--------|--------|------------|
+| API `vscode.WebviewPanel` complexe | Haut | Prototype simple Phase 2 avant d'y attacher la logique |
+| Partage CSS client/WebView — build step complexe | Moyen | Commencer avec une copie, puis factoriser |
+| `CancellationToken` Copilot peut ne pas arrêter immédiatement | Moyen | Afficher "Arrêt demandé…" et ignorer les chunks suivants |
+| Synchronisation historique sur reconnexion — état divergent | Moyen | `history_sync` envoyé à chaque connexion mobile |
+
+---
+
+## Phases v1 (archivées) ✅
 
 ---
 
