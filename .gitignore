@@ -1,0 +1,31 @@
+# Environnement — ne jamais committer
+.env
+.env.local
+*.env.local
+
+# Python / FastAPI
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node / Extension VS Code
+node_modules/
+dist/
+out/
+*.vsix
+.vscode-test/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+*.override.yml

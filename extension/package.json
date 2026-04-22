@@ -1,0 +1,71 @@
+{
+  "name": "copilot-remote",
+  "displayName": "Copilot Remote Bridge",
+  "description": "Contrôle déporté de GitHub Copilot via WebSocket",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "copilot-remote.remote",
+        "name": "remote",
+        "description": "Relais distant pour GitHub Copilot",
+        "isSticky": true
+      }
+    ],
+    "commands": [
+      {
+        "command": "copilot-remote.connect",
+        "title": "Copilot Remote: Connecter au serveur"
+      },
+      {
+        "command": "copilot-remote.disconnect",
+        "title": "Copilot Remote: Déconnecter du serveur"
+      },
+      {
+        "command": "copilot-remote.clearToken",
+        "title": "Copilot Remote: Supprimer le token stocké"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot Remote",
+      "properties": {
+        "copilot-remote.serverUrl": {
+          "type": "string",
+          "default": "wss://your-bridge-domain",
+          "description": "URL WSS du serveur relais Copilot Remote"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "node esbuild.mjs --production",
+    "test": "vscode-test",
+    "test:unit": "cross-env TS_NODE_PROJECT=tsconfig.test.json mocha"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@types/ws": "^8.5.10",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/test-electron": "^2.4.0",
+    "@vscode/vsce": "^2.26.0",
+    "cross-env": "^7.0.0",
+    "esbuild": "^0.21.0",
+    "mocha": "^10.7.0",
+    "sinon": "^18.0.0",
+    "ts-node": "^10.9.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "ws": "^8.17.0"
+  }
+}
