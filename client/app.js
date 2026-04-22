@@ -14,13 +14,13 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// Configuration (persistée dans localStorage)
+// Configuration (persistée en sessionStorage — effacée à la fermeture de l'onglet)
 // ---------------------------------------------------------------------------
 const CONFIG_KEY = 'copilot_remote_config';
 
 function loadConfig() {
   try {
-    return JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null');
+    return JSON.parse(sessionStorage.getItem(CONFIG_KEY) || 'null');
   } catch {
     return null;
   }
@@ -65,6 +65,7 @@ const messageInput    = document.getElementById('message-input');
 const sendBtn         = document.getElementById('send-btn');
 const settingsBtn     = document.getElementById('settings-btn');
 const saveConfigBtn   = document.getElementById('save-config-btn');
+const cancelConfigBtn = document.getElementById('cancel-config-btn');
 const serverUrlInput  = document.getElementById('server-url-input');
 const tokenInput      = document.getElementById('token-input');
 const setupError      = document.getElementById('setup-error');
@@ -104,8 +105,11 @@ const setupError      = document.getElementById('setup-error');
   saveConfigBtn.addEventListener('click', onSaveConfig);
 
   settingsBtn.addEventListener('click', () => {
-    disconnectWs();
     showSetupScreen();
+  });
+
+  cancelConfigBtn.addEventListener('click', () => {
+    showChatScreen();
   });
 })();
 
@@ -116,6 +120,12 @@ function showSetupScreen() {
   setupScreen.removeAttribute('hidden');
   chatScreen.setAttribute('hidden', '');
   setupError.textContent = '';
+  // Afficher le bouton Annuler uniquement si une session existait déjà
+  if (activeConfig) {
+    cancelConfigBtn.removeAttribute('hidden');
+  } else {
+    cancelConfigBtn.setAttribute('hidden', '');
+  }
 
   const config = loadConfig();
   if (config?.serverUrl) serverUrlInput.value = config.serverUrl;
@@ -142,6 +152,7 @@ function onSaveConfig() {
     return;
   }
 
+  disconnectWs();
   saveConfig(serverUrl, token);
   activeConfig = { serverUrl, token };
   showChatScreen();
