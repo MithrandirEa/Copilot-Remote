@@ -1,0 +1,65 @@
+/* ==========================================================================
+   Copilot Remote — WebView VS Code : Layout
+   Layout flexbox plein écran, sans position: fixed (adapté au WebView)
+   Dépend de shared/theme.css et shared/components.css
+   ========================================================================== */
+
+/* --- Corps principal (colonne flex plein écran) -------------------------- */
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* --- Header (flex-item, hauteur fixe) ------------------------------------ */
+#header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* --- Écran de configuration (flex, occupe l'espace restant) -------------- */
+#setup-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 32px 20px;
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+/* --- Écran de chat (flex, occupe l'espace restant) ----------------------- */
+#chat-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Zone de messages (scrollable) */
+#chat-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* --- Barre de saisie (flex-item, ancrée en bas) -------------------------- */
+#input-bar {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}

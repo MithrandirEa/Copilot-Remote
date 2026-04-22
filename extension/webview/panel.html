@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- CSP sera injectée dynamiquement par l'extension TypeScript -->
+  <title>Copilot Remote</title>
+  <link rel="stylesheet" href="{{THEME_URI}}" />
+  <link rel="stylesheet" href="{{COMPONENTS_URI}}" />
+  <link rel="stylesheet" href="{{PANEL_CSS_URI}}" />
+</head>
+<body>
+  <!-- Identique à client/index.html — sera complété Phase 2 -->
+  <header id="header">
+    <span id="app-title">Copilot Remote</span>
+    <span id="status-badge" class="badge disconnected" aria-live="polite">Déconnecté</span>
+  </header>
+  <main id="chat-screen">
+    <div id="chat-log" role="log" aria-live="polite" aria-label="Messages"></div>
+    <footer id="input-bar">
+      <form id="chat-form" autocomplete="off">
+        <textarea id="message-input" placeholder="Votre message…" rows="1" aria-label="Message" required></textarea>
+        <button type="submit" id="send-btn" aria-label="Envoyer">&#9658;</button>
+      </form>
+    </footer>
+  </main>
+  <script src="{{APP_JS_URI}}"></script>
+</body>
+</html>
