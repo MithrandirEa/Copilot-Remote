@@ -33,6 +33,11 @@
       {
         "command": "copilot-remote.clearToken",
         "title": "Copilot Remote: Supprimer le token stocké"
+      },
+      {
+        "command": "copilot-remote.openPanel",
+        "title": "Ouvrir le panel Copilot Remote",
+        "category": "Copilot Remote"
       }
     ],
     "configuration": {

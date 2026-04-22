@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { BridgeClient } from './bridgeClient';
 import { createParticipant } from './participant';
 import { getToken, storeToken, deleteToken, getServerUrl } from './config';
+import { ConversationPanel } from './webviewPanel';
 
 let client: BridgeClient | null = null;
 let outputChannel: vscode.OutputChannel | null = null;
@@ -32,6 +33,13 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilot-remote.clearToken', async () => {
       await deleteToken(context.secrets);
       vscode.window.showInformationMessage('Copilot Remote: token supprimé.');
+    })
+  );
+
+  // Commande : ouvrir le panel WebView de conversation
+  context.subscriptions.push(
+    vscode.commands.registerCommand('copilot-remote.openPanel', () => {
+      ConversationPanel.createOrShow(context);
     })
   );
 
@@ -119,12 +127,10 @@ function startClient(token: string, serverUrl: string, context: vscode.Extension
     serverUrl,
     token,
     // Handler des prompts entrants depuis le mobile :
-    // injecter le message dans le chat VS Code en invoquant @remote
-    (text: string, _id: string) => {
-      // Ouvrir le panel chat avec le message pré-rempli
-      void vscode.commands.executeCommand('workbench.action.chat.open', {
-        query: `@remote ${text}`,
-      });
+    // afficher le message dans le WebView (ouvrir le panel si nécessaire)
+    (text: string, id: string) => {
+      const panel = ConversationPanel.createOrShow(context);
+      panel.postMessage({ type: 'message', role: 'user', text, id });
     },
     outputChannel!
   );

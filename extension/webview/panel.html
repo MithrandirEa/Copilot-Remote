@@ -3,27 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- CSP sera injectée dynamiquement par l'extension TypeScript -->
+  <!-- CSP injectée dynamiquement par l'extension TypeScript — {{CSP_NONCE}} remplacé par une nonce aléatoire -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src 'nonce-{{CSP_NONCE}}'; script-src 'nonce-{{CSP_NONCE}}'; img-src data:; font-src 'self'" />
   <title>Copilot Remote</title>
-  <link rel="stylesheet" href="{{THEME_URI}}" />
-  <link rel="stylesheet" href="{{COMPONENTS_URI}}" />
-  <link rel="stylesheet" href="{{PANEL_CSS_URI}}" />
+  <link rel="stylesheet" href="{{THEME_URI}}" nonce="{{CSP_NONCE}}" />
+  <link rel="stylesheet" href="{{COMPONENTS_URI}}" nonce="{{CSP_NONCE}}" />
+  <link rel="stylesheet" href="{{PANEL_CSS_URI}}" nonce="{{CSP_NONCE}}" />
 </head>
 <body>
-  <!-- Identique à client/index.html — sera complété Phase 2 -->
+  <!-- Barre de statut -->
   <header id="header">
     <span id="app-title">Copilot Remote</span>
     <span id="status-badge" class="badge disconnected" aria-live="polite">Déconnecté</span>
   </header>
+
+  <!-- Écran de configuration (masqué par défaut) -->
+  <div id="setup-screen" role="complementary" hidden>
+    <h2>Configuration</h2>
+    <label for="server-url-input">URL du serveur</label>
+    <input id="server-url-input" type="url" placeholder="wss://votre-domaine/ws/vscode"
+      autocomplete="off" spellcheck="false" />
+    <button id="save-config-btn">Enregistrer</button>
+    <p id="setup-error" class="error" aria-live="assertive"></p>
+  </div>
+
+  <!-- Écran de chat principal -->
   <main id="chat-screen">
     <div id="chat-log" role="log" aria-live="polite" aria-label="Messages"></div>
     <footer id="input-bar">
       <form id="chat-form" autocomplete="off">
-        <textarea id="message-input" placeholder="Votre message…" rows="1" aria-label="Message" required></textarea>
+        <textarea id="message-input" placeholder="Votre message…" rows="1"
+          aria-label="Message" required></textarea>
         <button type="submit" id="send-btn" aria-label="Envoyer">&#9658;</button>
       </form>
+      <button id="settings-btn" type="button" aria-label="Paramètres">&#9881;</button>
     </footer>
   </main>
-  <script src="{{APP_JS_URI}}"></script>
+
+  <!-- Librairies locales — pas de CDN (CSP strict) -->
+  <script src="{{DOMPURIFY_URI}}" nonce="{{CSP_NONCE}}"></script>
+  <script src="{{MARKED_URI}}" nonce="{{CSP_NONCE}}"></script>
+  <script src="{{APP_JS_URI}}" nonce="{{CSP_NONCE}}"></script>
 </body>
 </html>
