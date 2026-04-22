@@ -31,5 +31,5 @@ export async function deleteToken(secrets: vscode.SecretStorage): Promise<void> 
  */
 export function getServerUrl(): string {
   const config = vscode.workspace.getConfiguration('copilot-remote');
-  return config.get<string>(SERVER_URL_KEY, 'wss://your-bridge-domain');
+  return config.get<string>('serverUrl', 'wss://your-bridge-domain');
 }
