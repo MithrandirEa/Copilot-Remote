@@ -2,8 +2,8 @@
 
 > Capitaine : Luffy  
 > Date de création : 2026-04-22  
-> Dernière mise à jour : 2026-04-22  
-> Statut : 🔵 En cours — v2 en développement
+> Dernière mise à jour : 2026-05-20  
+> Statut : ✅ Terminé — v2.0.0 mergée sur `main` (commit `0e3c5f5`, tag `v2.0.0`)
 
 ---
 
@@ -114,13 +114,15 @@ Remplacer le panel Chat intégré de VS Code par un **WebView personnalisé** da
 - [x] [MINEUR] Singleton `ConversationStore` réinitialisé dans `deactivate()` — Agent(s) : **Luffy**
 
 ### Phase 8 — Documentation & déploiement
-> Statut : ⬜ À faire
+> Statut : ✅ Terminé (commits `bc2a4f6`, `fd3e19a` → merge `0e3c5f5` → tag `v2.0.0`)
+> Priorité : **Must-have**
 
-- [ ] Mettre à jour le README avec les nouvelles fonctionnalités v2 — Agent(s) : **Robin**
-- [ ] Mettre à jour `copilot-instructions.md` — Agent(s) : **Luffy**
-- [ ] Build VSIX v2 + déploiement extension — Agent(s) : **Implémentation directe**
-- [ ] Déploiement bridge v2 sur VPS — Agent(s) : **Sanji**
-- [ ] Tag `v2.0.0` sur `main` après merge — Agent(s) : **Luffy**
+- [x] Mettre à jour le README avec les nouvelles fonctionnalités v2 — Agent(s) : **Robin**
+- [x] Guide de déploiement `DEPLOYMENT.md` — Agent(s) : **Sanji**
+- [x] Script de déploiement serveur `server/deploy.sh` — Agent(s) : **Sanji**
+- [x] Script `build:vsix` dans `extension/package.json` + `.vscodeignore` — Agent(s) : **Sanji**
+- [x] Merge `development → main` — Agent(s) : **Luffy**
+- [x] Tag `v2.0.0` sur `main` — Agent(s) : **Luffy**
 
 ---
 
