@@ -103,6 +103,10 @@ async function _doHandlePrompt(
       text: `⚠️ Erreur : ${message}`,
       id: `${id}-error`,
     });
+    // Signaler la fin du streaming même en cas d'erreur pour débloquer l'UI
+    const assistantId = `${id}-response`;
+    getPanel()?.postMessage({ type: 'response_end', id: assistantId });
+    getClient()?.send({ type: 'response_end', id: assistantId });
   } finally {
     cts.dispose();
   }

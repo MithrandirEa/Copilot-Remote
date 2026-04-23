@@ -91,6 +91,8 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   client?.dispose();
   client = null;
+  // Réinitialiser le singleton pour éviter la persistance d'historique entre rechargements
+  (ConversationStore as unknown as { _instance: undefined })._instance = undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,10 +100,13 @@ export function deactivate(): void {
 // ---------------------------------------------------------------------------
 
 async function autoConnect(context: vscode.ExtensionContext): Promise<void> {
+  // Guard : évite une double instanciation si autoConnect est appelé plusieurs fois
+  if (client !== null) { return; }
   const token = await getToken(context.secrets);
-  if (token) {
-    startClient(token, getServerUrl(), context);
-  }
+  if (!token) { return; }
+  // Vérification après l'await car une connexion manuelle peut avoir eu lieu entretemps
+  if (client !== null) { return; }
+  startClient(token, getServerUrl(), context);
 }
 
 async function commandConnect(context: vscode.ExtensionContext): Promise<void> {
@@ -109,7 +114,7 @@ async function commandConnect(context: vscode.ExtensionContext): Promise<void> {
   const currentUrl = getServerUrl();
   const serverUrl = await vscode.window.showInputBox({
     prompt: 'URL WSS du serveur relais',
-    value: currentUrl === 'wss://your-bridge-domain' ? 'wss://copilot.mithrandirea.info/ws/vscode' : currentUrl,
+    value: currentUrl === 'wss://your-bridge-domain' ? '' : currentUrl,
     placeHolder: 'wss://votre-domaine/ws/vscode',
     ignoreFocusOut: true,
     validateInput: (v) => v.startsWith('wss://') ? null : "L'URL doit commencer par wss://",

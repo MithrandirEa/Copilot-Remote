@@ -47,7 +47,8 @@
   border: 1px solid var(--border);
 }
 
-.message.copilot {
+.message.copilot,
+.message.assistant {
   align-self: flex-start;
   background: var(--copilot-bg);
   border: 1px solid var(--border);

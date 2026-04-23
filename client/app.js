@@ -390,10 +390,16 @@ function renderMarkdown(text) {
   if (typeof marked !== 'undefined') {
     // marked v5+ : marked.parse() est synchrone par défaut
     const raw = marked.parse(text, { breaks: true, gfm: true });
-    // Sanitisation DOMPurify obligatoire avant innerHTML (Mihawk — Haute)
-    return typeof DOMPurify !== 'undefined'
-      ? DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } })
-      : raw;
+    // Sanitisation DOMPurify obligatoire avant innerHTML
+    if (typeof DOMPurify === 'undefined') {
+      // DOMPurify absent : fallback sécurisé — échapper le HTML brut sans injecter de markdown non sanitisé
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+    }
+    return DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
   }
   // Fallback si marked non disponible : échapper le HTML
   return text

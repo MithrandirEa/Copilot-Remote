@@ -33,6 +33,26 @@ function receiveMessage(ws: MockWebSocket, payload: unknown): void {
   ws.emit('message', JSON.stringify(payload));
 }
 
+/** Crée un BridgeClient avec les callbacks optionnels v2. */
+function createClientFull(opts: {
+  onPrompt?: (text: string, id: string) => void;
+  onMobileConnected?: () => void;
+  onHistoryClear?: () => void;
+  onStop?: () => void;
+  onModelChange?: (model: string) => void;
+}): BridgeClient {
+  return new BridgeClient(
+    'wss://test.example.com',
+    'test-token-xyz',
+    opts.onPrompt ?? (() => {}),
+    { appendLine: () => {}, dispose: () => {} } as unknown as vscode.OutputChannel,
+    opts.onMobileConnected,
+    opts.onHistoryClear,
+    opts.onStop,
+    opts.onModelChange,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -229,6 +249,198 @@ describe('BridgeClient', () => {
       assert.ok(ws1.closeCalled, 'close() doit être appelé lors du dispose');
       clock.tick(5000);
       assert.strictEqual(getLastInstance(), ws1, 'pas de reconnexion après dispose() propre');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe("réception 'mobile_connected'", () => {
+    it('appelle onMobileConnected quand le serveur notifie une connexion mobile', () => {
+      // Arrange
+      let called = false;
+      const client = createClientFull({ onMobileConnected: () => { called = true; } });
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+      receiveMessage(ws, { type: 'auth_ok' });
+
+      // Act
+      receiveMessage(ws, { type: 'mobile_connected' });
+
+      // Assert
+      assert.ok(called, 'onMobileConnected doit être appelé');
+
+      client.dispose();
+    });
+
+    it("ne lève pas d'exception si onMobileConnected n'est pas fourni", () => {
+      // Arrange
+      const client = createClientFull({});
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+
+      // Act + Assert
+      assert.doesNotThrow(() => {
+        receiveMessage(ws, { type: 'mobile_connected' });
+      });
+
+      client.dispose();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe("réception 'history_clear'", () => {
+    it("appelle onHistoryClear quand le mobile demande la suppression de l'historique", () => {
+      // Arrange
+      let called = false;
+      const client = createClientFull({ onHistoryClear: () => { called = true; } });
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+      receiveMessage(ws, { type: 'auth_ok' });
+
+      // Act
+      receiveMessage(ws, { type: 'history_clear' });
+
+      // Assert
+      assert.ok(called, 'onHistoryClear doit être appelé');
+
+      client.dispose();
+    });
+
+    it("ne lève pas d'exception si onHistoryClear n'est pas fourni", () => {
+      // Arrange
+      const client = createClientFull({});
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+
+      // Act + Assert
+      assert.doesNotThrow(() => {
+        receiveMessage(ws, { type: 'history_clear' });
+      });
+
+      client.dispose();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe("réception 'stop'", () => {
+    it("appelle onStop quand le mobile demande l'annulation du streaming", () => {
+      // Arrange
+      let called = false;
+      const client = createClientFull({ onStop: () => { called = true; } });
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+      receiveMessage(ws, { type: 'auth_ok' });
+
+      // Act
+      receiveMessage(ws, { type: 'stop' });
+
+      // Assert
+      assert.ok(called, 'onStop doit être appelé');
+
+      client.dispose();
+    });
+
+    it("ne lève pas d'exception si onStop n'est pas fourni", () => {
+      // Arrange
+      const client = createClientFull({});
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+
+      // Act + Assert
+      assert.doesNotThrow(() => {
+        receiveMessage(ws, { type: 'stop' });
+      });
+
+      client.dispose();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe("réception 'model_change'", () => {
+    it('appelle onModelChange avec le nom du modèle reçu', () => {
+      // Arrange
+      let capturedModel = '';
+      let callCount = 0;
+      const client = createClientFull({
+        onModelChange: (model) => { capturedModel = model; callCount++; },
+      });
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+      receiveMessage(ws, { type: 'auth_ok' });
+
+      // Act
+      receiveMessage(ws, { type: 'model_change', model: 'gpt-4o-mini' });
+
+      // Assert
+      assert.strictEqual(callCount, 1, 'onModelChange doit être appelé exactement une fois');
+      assert.strictEqual(capturedModel, 'gpt-4o-mini');
+
+      client.dispose();
+    });
+
+    it("ne lève pas d'exception si onModelChange n'est pas fourni", () => {
+      // Arrange
+      const client = createClientFull({});
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+
+      // Act + Assert
+      assert.doesNotThrow(() => {
+        receiveMessage(ws, { type: 'model_change', model: 'o1-preview' });
+      });
+
+      client.dispose();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe('isConnected()', () => {
+    it('retourne false avant que connect() soit appelé', () => {
+      // Arrange
+      const client = createClientFull({});
+
+      // Assert
+      assert.strictEqual(client.isConnected(), false);
+
+      client.dispose();
+    });
+
+    it('retourne true après connect() et ouverture de la connexion (auth_ok)', () => {
+      // Arrange
+      const client = createClientFull({});
+
+      // Act
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+      receiveMessage(ws, { type: 'auth_ok' });
+
+      // Assert
+      assert.strictEqual(client.isConnected(), true);
+
+      client.dispose();
+    });
+
+    it('retourne false après dispose()', () => {
+      // Arrange
+      const client = createClientFull({});
+      client.connect();
+      const ws = getLastInstance()!;
+      openConnection(ws);
+      receiveMessage(ws, { type: 'auth_ok' });
+
+      // Act
+      client.dispose();
+
+      // Assert
+      assert.strictEqual(client.isConnected(), false);
     });
   });
 });

@@ -85,19 +85,19 @@ Remplacer le panel Chat intégré de VS Code par un **WebView personnalisé** da
 - [x] Propagation `stop` via bridge → extension — Agent(s) : **Law**
 
 ### Phase 5 — Sélection du modèle LLM (F3)
-> Statut : ⬜ À faire  
+> Statut : ✅ Terminé (commit `ebfb556`)  
 > Priorité : **Should-have**
 
-- [ ] Dropdown modèle dans les deux interfaces — Agent(s) : **Implémentation directe**
-- [ ] Message `model_change` propagé via bridge — Agent(s) : **Implémentation directe**
-- [ ] `participant.ts` utilise le modèle sélectionné (plus de `gpt-4o` hardcodé) — Agent(s) : **Implémentation directe**
+- [x] Dropdown modèle dans les deux interfaces — Agent(s) : **Law**
+- [x] Message `model_change` propagé via bridge — Agent(s) : **Law**
+- [x] `participant.ts` utilise le modèle sélectionné (plus de `gpt-4o` hardcodé) — Agent(s) : **Law**
 
 ### Phase 6 — Statuts enrichis (F7)
-> Statut : ⬜ À faire  
+> Statut : ✅ Terminé (commit `ebfb556`)  
 > Priorité : **Should-have**
 
-- [ ] Message `status_full` : modèle actif, nb messages, état connexions — Agent(s) : **Implémentation directe**
-- [ ] Indicateurs de statut dans les deux interfaces — Agent(s) : **Implémentation directe**
+- [x] Message `status_full` : modèle actif, nb messages, état connexions — Agent(s) : **Law**
+- [x] Indicateurs de statut dans les deux interfaces — Agent(s) : **Law**
 
 ### Phase 7 — Tests & qualité
 > Statut : ⬜ À faire

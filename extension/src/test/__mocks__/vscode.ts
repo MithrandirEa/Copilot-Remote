@@ -45,8 +45,13 @@ export const window = {
 };
 
 export const workspace = {
-  getConfiguration: (_section?: string) => ({
+  getConfiguration: (section?: string) => ({
     get: <T>(key: string, defaultValue?: T): T | undefined => {
+      // Cherche d'abord sous la clé complète "section.key", puis sous "key" seul
+      const fullKey = section ? `${section}.${key}` : key;
+      if (fullKey in _configValues) {
+        return _configValues[fullKey] as T;
+      }
       if (key in _configValues) {
         return _configValues[key] as T;
       }
