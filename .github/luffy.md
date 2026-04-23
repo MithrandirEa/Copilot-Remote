@@ -100,11 +100,18 @@ Remplacer le panel Chat intégré de VS Code par un **WebView personnalisé** da
 - [x] Indicateurs de statut dans les deux interfaces — Agent(s) : **Law**
 
 ### Phase 7 — Tests & qualité
-> Statut : ⬜ À faire
+> Statut : ✅ Terminé (commit `71ce427`)
+> Priorité : **Must-have**
 
-- [ ] Tests unitaires complets (WebView, ConversationStore, nouveaux messages) — Agent(s) : **Chopper**
-- [ ] Revue de code architecture v2 — Agent(s) : **Mihawk**
-- [ ] Audit sécurité des nouveaux messages — Agent(s) : **Mihawk**
+- [x] Tests unitaires complets (ConversationStore, BridgeClient v2 callbacks, isConnected) — Agent(s) : **Chopper** — 22 nouveaux tests, 40/40 verts
+- [x] Fix mock `vscode.getConfiguration` (section prefix) — Agent(s) : **Luffy**
+- [x] Revue de code architecture v2 — Agent(s) : **Mihawk**
+- [x] [CRITIQUE] `copilotEngine.ts` : `response_end` envoyé sur toute erreur (UI débloquée) — Agent(s) : **Luffy**
+- [x] [CRITIQUE] `extension.ts` : guard double-instanciation BridgeClient dans `autoConnect` — Agent(s) : **Luffy**
+- [x] [CRITIQUE] `client/app.js` : fallback XSS éliminé dans `renderMarkdown` — Agent(s) : **Luffy**
+- [x] [MAJEUR] `shared/components.css` : `.message.assistant` ajouté (alias `.message.copilot`) — Agent(s) : **Luffy**
+- [x] [MINEUR] URL personnelle retirée du `showInputBox` — Agent(s) : **Luffy**
+- [x] [MINEUR] Singleton `ConversationStore` réinitialisé dans `deactivate()` — Agent(s) : **Luffy**
 
 ### Phase 8 — Documentation & déploiement
 > Statut : ⬜ À faire

@@ -4,32 +4,68 @@
 
 ![Python](https://img.shields.io/badge/python-3.12+-blue?logo=python)
 ![Node](https://img.shields.io/badge/node-18+-green?logo=node.js)
+![TypeScript](https://img.shields.io/badge/typescript-5.4+-blue?logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-25%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
+![VS Code](https://img.shields.io/badge/vscode-1.90+-007ACC?logo=visual-studio-code)
 
 ---
 
 ## Table des matières
 
-1. [Fonctionnalités](#fonctionnalités)
-2. [Architecture](#architecture)
-3. [Prérequis](#prérequis)
-4. [Installation](#installation)
-5. [Configuration](#configuration)
-6. [Utilisation](#utilisation)
-7. [Sécurité](#sécurité)
-8. [Développement](#développement)
-9. [Licence](#licence)
+1. [Présentation](#présentation)
+2. [Fonctionnalités](#fonctionnalités)
+3. [Architecture](#architecture)
+4. [Prérequis](#prérequis)
+5. [Installation](#installation)
+6. [Configuration](#configuration)
+7. [Utilisation](#utilisation)
+8. [Sécurité](#sécurité)
+9. [Développement](#développement)
+10. [Licence](#licence)
+
+---
+
+## Présentation
+
+Copilot Remote Bridge est une extension VS Code et un serveur relais permettant d'interagir avec GitHub Copilot depuis n'importe quel navigateur mobile, sans jamais exposer VS Code directement sur Internet. Les échanges transitent par un serveur FastAPI hébergé sur VPS, protégés par TLS et authentification par token.
+
+Le projet se compose de trois composants indépendants :
+
+| Composant | Dossier | Rôle |
+|-----------|---------|------|
+| Extension VS Code | `extension/` | Pilote Copilot, expose un WebView et un participant `@remote` |
+| Serveur relais | `server/` | Hub WebSocket FastAPI, relaie les messages entre extension et client |
+| Client mobile | `client/` | Web App HTML/JS/CSS, interface de chat pour smartphone |
 
 ---
 
 ## Fonctionnalités
 
-- **Contrôle déporté** : envoyez des prompts à GitHub Copilot depuis n'importe quel navigateur mobile
-- **Streaming en temps réel** : les réponses Copilot s'affichent mot par mot sur le client
-- **Participant `@remote`** : intégration native au panel Chat VS Code via `vscode.lm` (modèle `gpt-4o`)
-- **Reconnexion automatique** : l'extension et le client mobile se reconnectent avec backoff exponentiel (plafonné à 30 s)
-- **Authentification HMAC** : token partagé 256 bits, comparaison en temps constant `hmac.compare_digest`
+### Contrôle déporté
+- **Envoi de prompts** depuis n'importe quel navigateur mobile via WSS
+- **Streaming en temps réel** : les réponses Copilot s'affichent mot par mot
+- **Stop génération** : annulation du streaming en cours depuis le mobile ou le WebView
+
+### Interface WebView intégrée
+- **Panel de chat dans VS Code** : interface graphique sans quitter l'éditeur (`Ouvrir le panel Copilot Remote`)
+- **Sélection du modèle LLM** : dropdown pour choisir le modèle Copilot actif (ex. `gpt-4o`, `gpt-4o-mini`, `claude-3.5-sonnet`)
+- **Vider l'historique** : bouton dédié dans le panel
+
+### Participant natif Copilot
+- **`@remote`** : participant intégré au panel Chat VS Code natif, utilise le même pipeline LLM
+
+### Historique et synchronisation
+- **ConversationStore** : historique centralisé en mémoire, partagé entre WebView et client mobile
+- **Synchronisation à la (re)connexion** : l'historique est envoyé automatiquement aux nouveaux clients
+- **Vider l'historique** : action disponible depuis les deux interfaces
+
+### Statut enrichi
+- Modèle LLM actif, nombre de messages, état de connexion des clients mobiles
+
+### Sécurité
+- **Authentification HMAC** : token partagé 256 bits, comparaison `hmac.compare_digest` résistante aux timing attacks
+- **Reconnexion automatique** : backoff exponentiel plafonné à 30 s côté extension et client
 - **Zéro exposition directe** : le smartphone ne connaît que le VPS, jamais VS Code directement
 
 ---
@@ -39,26 +75,58 @@
 ```
 ┌─────────────────┐         WSS          ┌─────────────────────────┐         WSS          ┌─────────────────────┐
 │   Smartphone    │ ──────────────────── │   FastAPI / VPS Ionos   │ ──────────────────── │  Extension VS Code  │
-│  (navigateur)   │     /ws/mobile       │  votre-bridge-domain    │     /ws/vscode        │  (Copilot Chat)     │
+│  (navigateur)   │     /ws/mobile       │  votre-bridge-domain    │     /ws/vscode        │  (Copilot + Panel)  │
 └─────────────────┘                      └─────────────────────────┘                       └─────────────────────┘
 ```
 
 **Flux de données :**
 
 ```
-Saisie mobile
+Saisie mobile ou WebView
     │
     ▼  {"type":"prompt","text":"...","id":"<uuid>"}
 [/ws/mobile] ──► serveur relais ──► [/ws/vscode]
                                          │
-                                         ▼  vscode.lm → Copilot gpt-4o
-                                    [participant @remote]
+                                         ▼  vscode.lm → Copilot (modèle sélectionné)
+                                    [CopilotEngine]
                                          │
                                          ▼  {"type":"response_chunk","text":"...","id":"..."}
 [/ws/mobile] ◄── serveur relais ◄── [/ws/vscode]
     │
-    ▼  rendu Markdown (DOMPurify)
-[Client mobile]
+    ▼  rendu Markdown (marked.js + DOMPurify)
+[Client mobile / WebView]
+```
+
+**Structure du projet :**
+
+```
+Copilot-Remote/
+├── extension/              # Extension VS Code (TypeScript)
+│   ├── src/
+│   │   ├── extension.ts        # Point d'entrée, commandes, barre de statut
+│   │   ├── bridgeClient.ts     # Client WebSocket avec reconnexion automatique
+│   │   ├── copilotEngine.ts    # Pipeline LLM unifié (WebView + mobile)
+│   │   ├── conversationStore.ts# Historique in-memory centralisé
+│   │   ├── webviewPanel.ts     # Panel WebView (singleton)
+│   │   ├── config.ts           # Token (SecretStorage) et URL serveur
+│   │   └── participant.ts      # Participant @remote (Chat VS Code natif)
+│   └── webview/
+│       ├── panel.html          # Interface du panel de chat
+│       └── panelApp.js         # Logique JS du WebView
+├── server/                 # Serveur relais FastAPI (Python)
+│   ├── src/
+│   │   ├── main.py             # Hub WebSocket, relay de messages
+│   │   └── auth.py             # Authentification par token
+│   └── tests/
+├── client/                 # Client mobile (HTML/CSS/JS statique)
+│   ├── index.html
+│   ├── app.js
+│   └── style.css
+├── shared/                 # Design system partagé (WebView + mobile)
+│   ├── theme.css               # Variables CSS (couleurs, typographie)
+│   └── components.css          # Composants UI réutilisables
+└── .github/
+    └── copilot-instructions.md
 ```
 
 ---
@@ -117,17 +185,33 @@ openssl rand -hex 32
 
 Conservez la valeur — elle sera saisie dans les trois composants.
 
-### 2. Configurer l'extension VS Code
+### 2. Configurer le serveur relais
+
+Copiez `server/.env.example` en `server/.env` et renseignez les valeurs :
+
+```dotenv
+# Token partagé entre tous les clients (extension VS Code + navigateur mobile).
+# Générer avec : openssl rand -hex 32
+AUTH_SECRET_TOKEN=remplacer_par_votre_secret_64_chars_hex
+
+# Niveau de log uvicorn (info | warning | error | critical)
+LOG_LEVEL=warning
+
+# Environnement (development | production)
+ENVIRONMENT=production
+```
+
+### 3. Configurer l'extension VS Code
 
 Ouvrez les paramètres VS Code (`Ctrl+,`) et recherchez **Copilot Remote** :
 
 | Paramètre | Valeur par défaut | Description |
 |-----------|-------------------|-------------|
-| `copilot-remote.serverUrl` | `wss://<votre-domaine>` | URL WSS du serveur relais |
+| `copilot-remote.serverUrl` | `wss://your-bridge-domain` | URL WSS du serveur relais |
 
 Lors du premier appel à la commande **Copilot Remote: Connecter au serveur**, une invite demande le token. Il est ensuite stocké dans `vscode.SecretStorage` (chiffrement OS).
 
-### 3. Configurer le client mobile
+### 4. Configurer le client mobile
 
 Au premier chargement, un écran de configuration demande :
 
@@ -146,15 +230,22 @@ Ces valeurs sont persistées en `sessionStorage` (effacées à la fermeture de l
    ```
 
 2. **Connecter l'extension** : palette de commandes → **Copilot Remote: Connecter au serveur**
-   - La barre de statut affiche `$(plug) Copilot Remote: connecté`
+   - La barre de statut affiche l'état de connexion et le modèle actif
 
-3. **Ouvrir le client mobile** dans le navigateur de votre smartphone
+3. **Ouvrir le panel intégré** (optionnel) : palette de commandes → **Ouvrir le panel Copilot Remote**
+   - Permet d'interagir avec Copilot sans quitter VS Code
+   - Sélection du modèle LLM via le dropdown
+   - Bouton pour vider l'historique
 
-4. **Envoyer un message** : rédigez votre prompt et appuyez sur **Envoyer** (ou `Entrée`)
+4. **Ouvrir le client mobile** dans le navigateur de votre smartphone
 
-5. La réponse Copilot s'affiche en streaming avec rendu Markdown
+5. **Envoyer un message** : rédigez votre prompt et appuyez sur **Envoyer** (ou `Entrée`)
 
-> Le participant `@remote` peut également être utilisé directement dans le panel Chat VS Code :
+6. La réponse Copilot s'affiche en streaming avec rendu Markdown
+
+7. **Arrêter une génération** : bouton **Stop** disponible dans le panel et sur le client mobile
+
+> Le participant `@remote` peut également être utilisé directement dans le panel Chat VS Code natif :
 > tapez `@remote <votre question>`.
 
 ---
