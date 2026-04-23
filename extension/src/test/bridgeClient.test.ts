@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as vscode from 'vscode';
 import sinon from 'sinon';
 import { BridgeClient } from '../bridgeClient';
 import { getLastInstance, resetLastInstance, MockWebSocket } from './__mocks__/ws';
@@ -18,7 +19,7 @@ function createClient(onPrompt?: (text: string, id: string) => void): BridgeClie
     'wss://test.example.com',
     'test-token-xyz',
     onPrompt ?? (() => {}),
-    { appendLine: () => {}, dispose: () => {} },
+    { appendLine: () => {}, dispose: () => {} } as unknown as vscode.OutputChannel,
   );
 }
 
@@ -123,7 +124,7 @@ describe('BridgeClient', () => {
     it("logge le message d'erreur et ne lève pas d'exception", () => {
       // Arrange
       const logLines: string[] = [];
-      const outputChannel = { appendLine: (line: string) => { logLines.push(line); }, dispose: () => {} };
+      const outputChannel = { appendLine: (line: string) => { logLines.push(line); }, dispose: () => {} } as unknown as vscode.OutputChannel;
       const client = new BridgeClient('wss://test.example.com', 'token', () => {}, outputChannel);
       client.connect();
       const ws = getLastInstance()!;

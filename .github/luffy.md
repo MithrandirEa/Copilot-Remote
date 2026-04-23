@@ -75,14 +75,14 @@ Remplacer le panel Chat intégré de VS Code par un **WebView personnalisé** da
 - [ ] Tests d'intégration synchronisation — Agent(s) : **Chopper** (Phase 7)
 
 ### Phase 4 — Historique & contrôles (F4 + F5)
-> Statut : ⬜ À faire  
+> Statut : ✅ Terminé (commit `3e62765`)  
 > Priorité : **Must-have (F4) / Should-have (F5)**
 
-- [ ] Bouton "Vider l'historique" dans les deux interfaces — Agent(s) : **Implémentation directe**
-- [ ] Message `history_clear` propagé aux deux interfaces — Agent(s) : **Implémentation directe**
-- [ ] Bouton "Stop" visible pendant le streaming dans les deux interfaces — Agent(s) : **Implémentation directe**
-- [ ] Signal `stop` — annulation du `sendRequest` Copilot via `CancellationToken` — Agent(s) : **Implémentation directe**
-- [ ] Propagation `stop` via bridge → extension — Agent(s) : **Implémentation directe**
+- [x] Bouton "Vider l'historique" dans les deux interfaces — Agent(s) : **Law**
+- [x] Message `history_clear` propagé aux deux interfaces — Agent(s) : **Law**
+- [x] Bouton "Stop" visible pendant le streaming dans les deux interfaces — Agent(s) : **Law**
+- [x] Signal `stop` — annulation du `sendRequest` Copilot via `CancellationToken` — Agent(s) : **Law**
+- [x] Propagation `stop` via bridge → extension — Agent(s) : **Law**
 
 ### Phase 5 — Sélection du modèle LLM (F3)
 > Statut : ⬜ À faire  
