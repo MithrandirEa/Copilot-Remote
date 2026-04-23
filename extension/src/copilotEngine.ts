@@ -10,6 +10,8 @@ export interface PromptContext {
   getPanel: () => ConversationPanel | undefined;
   outputChannel: vscode.OutputChannel;
   cancellationToken?: vscode.CancellationToken;
+  /** Famille de modèle à utiliser ; si absent, utilise ConversationStore.instance.selectedModel. */
+  modelFamily?: string;
 }
 
 /**
@@ -58,10 +60,11 @@ async function _doHandlePrompt(
   getPanel()?.postMessage({ type: 'message', role: 'user', text, id });
 
   try {
-    // 3. Sélectionner le modèle Copilot (gpt-4o — sera remplacé Phase 5)
-    const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4o' });
+    // 3. Sélectionner le modèle Copilot depuis le store (ou override via ctx.modelFamily)
+    const family = ctx.modelFamily ?? ConversationStore.instance.selectedModel;
+    const [model] = await vscode.lm.selectChatModels({ family });
     if (!model) {
-      throw new Error('Aucun modèle Copilot disponible (gpt-4o introuvable)');
+      throw new Error(`Aucun modèle Copilot disponible (${family} introuvable)`);
     }
 
     // 4. Construire les messages depuis l'historique complet

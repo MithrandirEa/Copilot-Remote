@@ -69,6 +69,7 @@ const cancelConfigBtn = document.getElementById('cancel-config-btn');
 const serverUrlInput  = document.getElementById('server-url-input');
 const tokenInput      = document.getElementById('token-input');
 const setupError      = document.getElementById('setup-error');
+const modelSelect     = document.getElementById('model-select');
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -129,6 +130,13 @@ function normalizeServerUrl(url) {
 
   clearBtn.addEventListener('click', onClearHistory);
   stopBtn.addEventListener('click', onStop);
+
+  // Changement de modèle LLM — envoié au bridge pour relai vers VS Code
+  modelSelect.addEventListener('change', () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'model_change', model: modelSelect.value }));
+    }
+  });
 })();
 
 // ---------------------------------------------------------------------------
@@ -296,7 +304,16 @@ function handleMessage(msg) {
       streamingText = '';
       currentStreamId = null;
       break;
+    case 'model_change':
+      // Synchroniser le dropdown avec le modèle actif (changé depuis VS Code ou autre client)
+      if (modelSelect) { modelSelect.value = msg.model; }
+      break;
 
+    case 'status_full':
+      // Statut enrichi : connexion VS Code confirmée + modèle actif
+      setStatus('connected');
+      if (modelSelect) { modelSelect.value = msg.model; }
+      break;
     case 'error':
       appendSystemMessage(`Erreur : ${msg.message}`);
       break;

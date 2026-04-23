@@ -59,9 +59,21 @@ export function activate(context: vscode.ExtensionContext): void {
       panel.onHistoryClear = () => {
         ConversationStore.instance.clear();
         client?.send({ type: 'history_clear' });
+        sendStatusFull();
       };
       // Annuler le streaming depuis le WebView
       panel.onStop = () => { activePromptHandle?.cancel(); };
+      // Changer le modèle depuis le WebView
+      panel.onModelChange = (model: string) => {
+        ConversationStore.instance.setModel(model);
+        client?.send({ type: 'model_change', model });
+        sendStatusFull();
+      };
+      // Envoyer la liste des modèles disponibles et le modèle actif au WebView
+      void fetchAvailableModels().then(models => {
+        panel.postMessage({ type: 'models_list', models });
+        panel.postMessage({ type: 'model_change', model: ConversationStore.instance.selectedModel });
+      });
     })
   );
 
@@ -173,8 +185,14 @@ function startClient(token: string, serverUrl: string, context: vscode.Extension
       panel.onHistoryClear = () => {
         ConversationStore.instance.clear();
         client?.send({ type: 'history_clear' });
+        sendStatusFull();
       };
       panel.onStop = () => { activePromptHandle?.cancel(); };
+      panel.onModelChange = (model: string) => {
+        ConversationStore.instance.setModel(model);
+        client?.send({ type: 'model_change', model });
+        sendStatusFull();
+      };
       const { handle, promise } = handlePrompt({
         text, id,
         getClient: () => client,
@@ -185,21 +203,59 @@ function startClient(token: string, serverUrl: string, context: vscode.Extension
       void promise.finally(() => { activePromptHandle = null; });
     },
     outputChannel!,
-    // mobile_connected → envoyer l'historique au mobile via le bridge
+    // mobile_connected → envoyer l'historique au mobile via le bridge + statut enrichi
     () => {
       const history = ConversationStore.instance.getAll();
       client?.send({ type: 'history_sync', messages: [...history] });
+      sendStatusFull();
     },
     // history_clear depuis le mobile → vider le store + notifier WebView + écho mobile
     () => {
       ConversationStore.instance.clear();
       ConversationPanel.currentPanel?.postMessage({ type: 'history_clear' });
       client?.send({ type: 'history_clear' });
+      sendStatusFull();
     },
     // stop depuis le mobile → annuler le streaming en cours
     () => { activePromptHandle?.cancel(); },
+    // model_change depuis le mobile → mettre à jour le store + notifier WebView + statut
+    (model: string) => {
+      ConversationStore.instance.setModel(model);
+      ConversationPanel.currentPanel?.postMessage({ type: 'model_change', model });
+      sendStatusFull();
+    },
+    // auth_ok → envoyer le statut enrichi initial au mobile et au WebView
+    () => { sendStatusFull(); },
   );
   context.subscriptions.push({ dispose: () => { client?.dispose(); } });
   client.connect();
 }
 
+// ---------------------------------------------------------------------------
+// Fonctions utilitaires
+// ---------------------------------------------------------------------------
+
+/**
+ * Retourne la liste dédoublonnée des familles de modèles LLM disponibles via vscode.lm.
+ * Utilisée pour alimenter le dropdown de sélection de modèle.
+ */
+async function fetchAvailableModels(): Promise<string[]> {
+  const models = await vscode.lm.selectChatModels({});
+  const families = [...new Set(models.map(m => m.family))];
+  return families.length > 0 ? families : ['gpt-4o'];
+}
+
+/**
+ * Envoie un status_full au WebView et au bridge avec l'état complet du système.
+ * Appelé après chaque changement d'état significatif (modèle, historique, connexion).
+ */
+function sendStatusFull(): void {
+  const payload = {
+    type: 'status_full' as const,
+    model: ConversationStore.instance.selectedModel,
+    messageCount: ConversationStore.instance.getAll().length,
+    mobileConnected: client?.isConnected() ?? false,
+  };
+  ConversationPanel.currentPanel?.postMessage(payload);
+  client?.send(payload);
+}

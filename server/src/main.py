@@ -43,9 +43,9 @@ _mobile_ws: WebSocket | None = None
 MAX_MESSAGE_BYTES: int = 64 * 1024  # 64 Ko
 
 # Types de messages autorisés depuis VS Code → mobile (Mihawk — Moyenne)
-_VSCODE_ALLOWED_TYPES = frozenset({"response_chunk", "response_end", "error", "history_sync", "history_clear"})
+_VSCODE_ALLOWED_TYPES = frozenset({"response_chunk", "response_end", "error", "history_sync", "history_clear", "model_change", "status_full"})
 # Types de messages autorisés depuis mobile → VS Code
-_MOBILE_ALLOWED_TYPES = frozenset({"prompt", "history_clear", "stop"})
+_MOBILE_ALLOWED_TYPES = frozenset({"prompt", "history_clear", "stop", "model_change"})
 
 
 @app.get("/health")

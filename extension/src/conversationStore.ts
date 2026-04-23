@@ -14,6 +14,7 @@ export interface ConversationEntry {
 export class ConversationStore {
   private static _instance: ConversationStore | undefined;
   private _entries: ConversationEntry[] = [];
+  private _selectedModel: string = 'gpt-4o';
 
   private constructor() {}
 
@@ -39,6 +40,12 @@ export class ConversationStore {
   public clear(): void {
     this._entries = [];
   }
+
+  /** Modèle LLM actif. */
+  public get selectedModel(): string { return this._selectedModel; }
+
+  /** Mettre à jour le modèle LLM actif. */
+  public setModel(model: string): void { this._selectedModel = model; }
 
   /**
    * Convertit l'historique en messages vscode.LanguageModelChatMessage[]

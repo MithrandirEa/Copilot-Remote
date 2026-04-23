@@ -9,14 +9,17 @@ export type IncomingMessage =
   | { type: 'error'; message: string }
   | { type: 'mobile_connected' }    // serveur notifie VS Code que le mobile vient de se connecter
   | { type: 'history_clear' }       // mobile demande la suppression de l'historique
-  | { type: 'stop' };               // mobile demande l'annulation du streaming en cours
+  | { type: 'stop' }                // mobile demande l’annulation du streaming en cours
+  | { type: 'model_change'; model: string }; // mobile ou extension change le modèle LLM
 
 export type OutgoingMessage =
   | { type: 'auth'; token: string }
   | { type: 'response_chunk'; text: string; id: string }
   | { type: 'response_end'; id: string }
   | { type: 'history_sync'; messages: Array<{ role: 'user' | 'assistant'; text: string; id: string }> }
-  | { type: 'history_clear' };      // propagation ou confirmation de suppression d'historique
+  | { type: 'history_clear' }       // propagation ou confirmation de suppression d’historique
+  | { type: 'model_change'; model: string }                                    // changement de modèle LLM
+  | { type: 'status_full'; model: string; messageCount: number; mobileConnected: boolean }; // statut enrichi
 
 type PromptHandler = (text: string, id: string) => void;
 
@@ -33,6 +36,8 @@ export class BridgeClient {
   private readonly onMobileConnected: (() => void) | undefined;
   private readonly onHistoryClear: (() => void) | undefined;
   private readonly onStop: (() => void) | undefined;
+  private readonly onModelChange: ((model: string) => void) | undefined;
+  private readonly onAuthOk: (() => void) | undefined;
 
   // Délai de reconnexion en ms (exponentiel plafonné à 30s)
   private reconnectDelay = 2000;
@@ -48,11 +53,15 @@ export class BridgeClient {
     onMobileConnected?: () => void,
     onHistoryClear?: () => void,
     onStop?: () => void,
+    onModelChange?: (model: string) => void,
+    onAuthOk?: () => void,
   ) {
     this.outputChannel = outputChannel;
     this.onMobileConnected = onMobileConnected;
     this.onHistoryClear = onHistoryClear;
     this.onStop = onStop;
+    this.onModelChange = onModelChange;
+    this.onAuthOk = onAuthOk;
   }
 
   /** Établit la connexion WebSocket. */
@@ -98,6 +107,7 @@ export class BridgeClient {
         this.reconnectDelay = 2000; // reset après succès
         this.log('Authentifié — relais actif');
         vscode.window.setStatusBarMessage('$(plug) Copilot Remote: connecté', 5000);
+        this.onAuthOk?.();
         return;
       }
 
@@ -123,7 +133,11 @@ export class BridgeClient {
         this.onStop?.();
         return;
       }
-
+      if (msg.type === 'model_change') {
+        // Changement de modèle LLM demandé depuis le mobile
+        this.onModelChange?.(msg.model);
+        return;
+      }
       if (msg.type === 'error') {
         this.log(`Erreur serveur : ${msg.message}`);
         return;
@@ -151,6 +165,11 @@ export class BridgeClient {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(msg));
     }
+  }
+
+  /** Indique si la connexion WebSocket est établie et ouverte. */
+  isConnected(): boolean {
+    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }
 
   /** Ferme la connexion proprement et annule la reconnexion automatique. */

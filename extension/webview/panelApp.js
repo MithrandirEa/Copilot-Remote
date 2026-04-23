@@ -44,6 +44,7 @@ const setupError     = document.getElementById('setup-error');
 const clearBtn       = document.getElementById('clear-btn');
 const stopBtn        = document.getElementById('stop-btn');
 const sendBtn        = document.getElementById('send-btn');
+const modelSelect    = document.getElementById('model-select');
 
 // ---------------------------------------------------------------------------
 // Initialisation
@@ -78,6 +79,11 @@ const sendBtn        = document.getElementById('send-btn');
 
   clearBtn.addEventListener('click', onClearHistory);
   stopBtn.addEventListener('click', () => { vscode.postMessage({ type: 'stop' }); });
+
+  // Changement de modèle LLM
+  modelSelect.addEventListener('change', () => {
+    vscode.postMessage({ type: 'model_change', model: modelSelect.value });
+  });
 
   saveConfigBtn.addEventListener('click', onSaveConfig);
 })();
@@ -143,7 +149,28 @@ window.addEventListener('message', (event) => {
       streamingText = '';
       currentStreamId = null;
       break;
-  }
+    case 'models_list':
+      // Peupler le dropdown avec les modèles disponibles signalés par l’extension
+      modelSelect.innerHTML = '';
+      for (const m of message.models) {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        modelSelect.appendChild(opt);
+      }
+      break;
+
+    case 'model_change':
+      // Synchroniser le dropdown avec le modèle actif
+      modelSelect.value = message.model;
+      break;
+
+    case 'status_full':
+      // Statut enrichi : modèle actif + nombre de messages + connexion mobile
+      statusBadge.textContent = `${message.model} · ${message.messageCount} msg`;
+      statusBadge.className = `badge ${message.mobileConnected ? 'connected' : 'disconnected'}`;
+      if (modelSelect) { modelSelect.value = message.model; }
+      break;  }
 });
 
 // ---------------------------------------------------------------------------

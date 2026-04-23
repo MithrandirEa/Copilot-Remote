@@ -18,6 +18,19 @@
 .badge.disconnected { background: #2d1b1b; color: var(--error); }
 .badge.connecting   { background: #1a2a3a; color: var(--accent); }
 
+/* --- Dropdown de sélection du modèle LLM --------------------------------- */
+#model-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+}
+#model-select:focus { border-color: var(--accent); }
+
 /* --- Bulle de message générique ------------------------------------------ */
 .message {
   max-width: 92%;

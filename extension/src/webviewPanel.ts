@@ -13,7 +13,8 @@ type WebviewMessage =
   | { type: 'prompt'; text: string }
   | { type: 'save_config'; serverUrl: string }
   | { type: 'history_clear' }   // l'utilisateur WebView vide l'historique
-  | { type: 'stop' };           // l'utilisateur WebView annule le streaming en cours
+  | { type: 'stop' }            // l’utilisateur WebView annule le streaming en cours
+  | { type: 'model_change'; model: string }; // l’utilisateur WebView change le modèle LLM
 
 /** Messages envoyés vers le WebView (postMessage côté extension). */
 export type ExtensionMessage =
@@ -22,7 +23,10 @@ export type ExtensionMessage =
   | { type: 'response_end'; id: string }
   | { type: 'status'; connected: boolean }
   | { type: 'history_sync'; messages: Array<{ role: 'user' | 'assistant'; text: string; id: string }> }
-  | { type: 'history_clear' };  // l'extension notifie le WebView que l'historique a été vidé
+  | { type: 'history_clear' }   // l’extension notifie le WebView que l’historique a été vidé
+  | { type: 'models_list'; models: string[] }                                             // liste des modèles disponibles
+  | { type: 'model_change'; model: string }                                               // modèle actif changé
+  | { type: 'status_full'; model: string; messageCount: number; mobileConnected: boolean }; // statut enrichi
 
 // ---------------------------------------------------------------------------
 // Panel WebView (singleton)
@@ -48,7 +52,8 @@ export class ConversationPanel {
 
   /** Callback déclenché quand le WebView demande l'annulation du streaming. */
   public onStop: (() => void) | undefined;
-
+  /** Callback déclenché quand le WebView change le modèle LLM. */
+  public onModelChange: ((model: string) => void) | undefined;
   // ---------------------------------------------------------------------------
   // Fabrique statique (singleton)
   // ---------------------------------------------------------------------------
@@ -116,7 +121,10 @@ export class ConversationPanel {
             // L'utilisateur WebView annule le streaming en cours
             this.onStop?.();
             break;
-
+          case 'model_change':
+            // L’utilisateur WebView change le modèle LLM
+            this.onModelChange?.(message.model);
+            break;
           case 'save_config':
             // Persister l'URL du serveur dans les paramètres VS Code
             void vscode.workspace
