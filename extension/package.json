@@ -8,8 +8,12 @@
     "type": "git",
     "url": "https://github.com/MithrandirEa/Copilot-Remote"
   },
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Other"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
@@ -33,6 +37,11 @@
       {
         "command": "copilot-remote.clearToken",
         "title": "Copilot Remote: Supprimer le token stocké"
+      },
+      {
+        "command": "copilot-remote.openPanel",
+        "title": "Ouvrir le panel Copilot Remote",
+        "category": "Copilot Remote"
       }
     ],
     "configuration": {
@@ -52,12 +61,14 @@
     "compile": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "package": "node esbuild.mjs --production",
+    "build:vsix": "npm run package && npx vsce package",
     "test": "vscode-test",
     "test:unit": "cross-env TS_NODE_PROJECT=tsconfig.test.json mocha"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.0",
     "@types/node": "^20.0.0",
+    "@types/sinon": "^21.0.1",
     "@types/vscode": "^1.90.0",
     "@types/ws": "^8.5.10",
     "@vscode/test-cli": "^0.0.9",

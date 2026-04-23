@@ -6,13 +6,23 @@
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'none'; style-src 'self'; script-src 'self'; connect-src wss://copilot.mithrandirea.info; img-src 'self' data:; font-src 'self'" />
   <title>Copilot Remote</title>
+  <link rel="stylesheet" href="../shared/theme.css" />
+  <link rel="stylesheet" href="../shared/components.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <!-- Barre de statut -->
   <header id="header">
     <span id="app-title">Copilot Remote</span>
-    <span id="status-badge" class="badge disconnected" aria-live="polite">Déconnecté</span>
+    <div id="header-actions">
+      <span id="status-badge" class="badge disconnected" aria-live="polite">Déconnecté</span>
+      <select id="model-select" aria-label="Modèle LLM" title="Modèle LLM">
+        <option value="gpt-4o">gpt-4o</option>
+        <option value="claude-sonnet">claude-sonnet</option>
+        <option value="gpt-4o-mini">gpt-4o-mini</option>
+      </select>
+      <button id="clear-btn" type="button" aria-label="Vider l'historique" title="Vider l'historique">&#128465;</button>
+    </div>
   </header>
 
   <!-- Écran de configuration (premier lancement) -->
@@ -46,6 +56,7 @@
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
           </svg>
         </button>
+        <button id="stop-btn" type="button" aria-label="Arrêter la génération" hidden>&#9632;</button>
       </form>
       <button id="settings-btn" aria-label="Paramètres">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

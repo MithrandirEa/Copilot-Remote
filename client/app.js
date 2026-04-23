@@ -62,11 +62,14 @@ const chatForm        = document.getElementById('chat-form');
 const messageInput    = document.getElementById('message-input');
 const sendBtn         = document.getElementById('send-btn');
 const settingsBtn     = document.getElementById('settings-btn');
+const clearBtn        = document.getElementById('clear-btn');
+const stopBtn         = document.getElementById('stop-btn');
 const saveConfigBtn   = document.getElementById('save-config-btn');
 const cancelConfigBtn = document.getElementById('cancel-config-btn');
 const serverUrlInput  = document.getElementById('server-url-input');
 const tokenInput      = document.getElementById('token-input');
 const setupError      = document.getElementById('setup-error');
+const modelSelect     = document.getElementById('model-select');
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -123,6 +126,16 @@ function normalizeServerUrl(url) {
 
   cancelConfigBtn.addEventListener('click', () => {
     showChatScreen();
+  });
+
+  clearBtn.addEventListener('click', onClearHistory);
+  stopBtn.addEventListener('click', onStop);
+
+  // Changement de modèle LLM — envoié au bridge pour relai vers VS Code
+  modelSelect.addEventListener('change', () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'model_change', model: modelSelect.value }));
+    }
   });
 })();
 
@@ -260,10 +273,12 @@ function handleMessage(msg) {
 
     case 'response_chunk':
       if (msg.id !== currentStreamId) {
-        // Nouvelle réponse — créer une bulle de streaming
+        // Nouvelle réponse — créer une bulle de streaming et afficher Stop
         currentStreamId = msg.id;
         streamingText = '';
         streamingMessageEl = appendMessage('copilot', '', true);
+        stopBtn.hidden = false;
+        sendBtn.hidden = true;
       }
       streamingText += msg.text;
       updateStreamingMessage(streamingText);
@@ -276,8 +291,29 @@ function handleMessage(msg) {
         streamingText = '';
         currentStreamId = null;
       }
+      stopBtn.hidden = true;
+      sendBtn.hidden = false;
       break;
 
+    case 'history_clear':
+      // L'extension confirme la suppression de l'historique
+      chatLog.innerHTML = '';
+      stopBtn.hidden = true;
+      sendBtn.hidden = false;
+      streamingMessageEl = null;
+      streamingText = '';
+      currentStreamId = null;
+      break;
+    case 'model_change':
+      // Synchroniser le dropdown avec le modèle actif (changé depuis VS Code ou autre client)
+      if (modelSelect) { modelSelect.value = msg.model; }
+      break;
+
+    case 'status_full':
+      // Statut enrichi : connexion VS Code confirmée + modèle actif
+      setStatus('connected');
+      if (modelSelect) { modelSelect.value = msg.model; }
+      break;
     case 'error':
       appendSystemMessage(`Erreur : ${msg.message}`);
       break;
@@ -354,10 +390,16 @@ function renderMarkdown(text) {
   if (typeof marked !== 'undefined') {
     // marked v5+ : marked.parse() est synchrone par défaut
     const raw = marked.parse(text, { breaks: true, gfm: true });
-    // Sanitisation DOMPurify obligatoire avant innerHTML (Mihawk — Haute)
-    return typeof DOMPurify !== 'undefined'
-      ? DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } })
-      : raw;
+    // Sanitisation DOMPurify obligatoire avant innerHTML
+    if (typeof DOMPurify === 'undefined') {
+      // DOMPurify absent : fallback sécurisé — échapper le HTML brut sans injecter de markdown non sanitisé
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+    }
+    return DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
   }
   // Fallback si marked non disponible : échapper le HTML
   return text
@@ -374,4 +416,23 @@ function setStatus(state) {
   const labels = { connected: 'Connecté', disconnected: 'Déconnecté', connecting: 'Connexion…' };
   statusBadge.textContent = labels[state] ?? state;
   statusBadge.className = `badge ${state}`;
+}
+
+// ---------------------------------------------------------------------------
+// Actions utilisateur
+// ---------------------------------------------------------------------------
+
+/** Vider le chat log et notifier le serveur. */
+function onClearHistory() {
+  chatLog.innerHTML = '';
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'history_clear' }));
+  }
+}
+
+/** Annuler le streaming en cours et notifier le serveur. */
+function onStop() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'stop' }));
+  }
 }

@@ -1,0 +1,43 @@
+/* ==========================================================================
+   Copilot Remote — Design System partagé : Thème
+   Variables CSS, reset, typographie et animations
+   Importé par client/ et extension/webview/
+   ========================================================================== */
+
+/* --- Variables CSS ------------------------------------------------------- */
+:root {
+  --bg:          #0d1117;
+  --surface:     #161b22;
+  --border:      #30363d;
+  --text:        #e6edf3;
+  --text-muted:  #8b949e;
+  --accent:      #388bfd;
+  --accent-dim:  #1f6feb33;
+  --user-bg:     #1c2128;
+  --copilot-bg:  #161b22;
+  --error:       #f85149;
+  --ok:          #3fb950;
+  --radius:      12px;
+  --input-h:     52px;
+  --header-h:    52px;
+}
+
+/* --- Reset --------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* --- Base html/body — couleurs & typo (layout dans chaque contexte) ------ */
+html { font-size: 16px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+}
+
+/* --- Animations ---------------------------------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink { 50% { opacity: 0; } }

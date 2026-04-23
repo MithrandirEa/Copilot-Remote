@@ -1,0 +1,271 @@
+/* ==========================================================================
+   Copilot Remote — Design System partagé : Composants UI
+   Badges, bulles de messages, rendu Markdown, erreurs
+   Importé par client/ et extension/webview/
+   Dépend de shared/theme.css (variables et animations)
+   ========================================================================== */
+
+/* --- Badge de statut ----------------------------------------------------- */
+.badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.badge.connected    { background: #1a3a1f; color: var(--ok); }
+.badge.disconnected { background: #2d1b1b; color: var(--error); }
+.badge.connecting   { background: #1a2a3a; color: var(--accent); }
+
+/* --- Dropdown de sélection du modèle LLM --------------------------------- */
+#model-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+}
+#model-select:focus { border-color: var(--accent); }
+
+/* --- Bulle de message générique ------------------------------------------ */
+.message {
+  max-width: 92%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 0.92rem;
+  word-break: break-word;
+  animation: fadeIn 0.15s ease;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: var(--user-bg);
+  border: 1px solid var(--border);
+}
+
+.message.copilot,
+.message.assistant {
+  align-self: flex-start;
+  background: var(--copilot-bg);
+  border: 1px solid var(--border);
+}
+
+.message.system {
+  align-self: center;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  border: none;
+  padding: 2px 0;
+}
+
+/* --- Curseur de streaming ------------------------------------------------ */
+.message.streaming::after {
+  content: '▋';
+  display: inline-block;
+  animation: blink 0.8s step-start infinite;
+  margin-left: 2px;
+  color: var(--accent);
+}
+
+/* --- Rendu Markdown dans les bulles Copilot ------------------------------ */
+.message p  { margin: 0 0 0.6em; }
+.message p:last-child { margin-bottom: 0; }
+
+.message code {
+  background: var(--user-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  padding: 1px 5px;
+}
+
+.message pre {
+  background: var(--user-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-x: auto;
+  padding: 10px 12px;
+  margin: 6px 0;
+}
+
+.message pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.82em;
+}
+
+.message ul, .message ol { padding-left: 1.4em; margin: 0.4em 0; }
+
+.message blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 10px;
+  color: var(--text-muted);
+  margin: 6px 0;
+}
+
+.message strong { color: #fff; }
+.message a { color: var(--accent); }
+
+/* --- Message d'erreur ---------------------------------------------------- */
+.error { color: var(--error); font-size: 0.85rem; min-height: 1.2em; }
+
+/* --- Titre application --------------------------------------------------- */
+#app-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* --- États d'affichage (partagés) ---------------------------------------- */
+#setup-screen[hidden] { display: none; }
+#chat-screen[hidden]  { display: none; }
+
+/* --- Formulaire de configuration ---------------------------------------- */
+#setup-screen h2 { font-size: 1.2rem; margin-bottom: 8px; }
+
+#setup-screen label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+#setup-screen input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.95rem;
+  padding: 12px 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+#setup-screen input:focus { border-color: var(--accent); }
+
+#save-config-btn {
+  margin-top: 8px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 14px;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.15s;
+}
+#save-config-btn:active { opacity: 0.8; }
+
+#cancel-config-btn {
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 10px;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.15s;
+}
+#cancel-config-btn:active { opacity: 0.8; }
+
+/* --- Formulaire de saisie ------------------------------------------------ */
+#chat-form {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+#message-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  max-height: 120px;
+  min-height: var(--input-h);
+  outline: none;
+  padding: 14px;
+  resize: none;
+  transition: border-color 0.15s;
+}
+#message-input:focus { border-color: var(--accent); }
+
+/* --- Boutons icône ------------------------------------------------------- */
+#send-btn, #settings-btn {
+  align-items: center;
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 44px;
+  justify-content: center;
+  transition: opacity 0.15s;
+  width: 44px;
+}
+#send-btn:active, #settings-btn:active { opacity: 0.75; }
+#send-btn svg, #settings-btn svg { width: 18px; height: 18px; }
+
+#settings-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* --- Bouton vider l'historique (header) ---------------------------------- */
+#clear-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  height: 32px;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  width: 32px;
+}
+#clear-btn:hover { color: var(--error); border-color: var(--error); }
+
+/* --- Bouton stop (dans #chat-form, visible uniquement pendant le streaming) */
+#stop-btn {
+  align-items: center;
+  background: var(--error);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 44px;
+  justify-content: center;
+  transition: opacity 0.15s;
+  width: 44px;
+}
+#stop-btn:active { opacity: 0.75; }
+
+/* --- Groupe droit du header (status-badge + clear-btn) ------------------- */
+#header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

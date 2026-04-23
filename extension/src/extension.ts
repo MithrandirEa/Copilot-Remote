@@ -2,9 +2,13 @@ import * as vscode from 'vscode';
 import { BridgeClient } from './bridgeClient';
 import { createParticipant } from './participant';
 import { getToken, storeToken, deleteToken, getServerUrl } from './config';
+import { ConversationPanel } from './webviewPanel';
+import { handlePrompt, PromptHandle } from './copilotEngine';
+import { ConversationStore } from './conversationStore';
 
 let client: BridgeClient | null = null;
 let outputChannel: vscode.OutputChannel | null = null;
+let activePromptHandle: PromptHandle | null = null;
 
 export function activate(context: vscode.ExtensionContext): void {
   outputChannel = vscode.window.createOutputChannel('Copilot Remote');
@@ -35,6 +39,51 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  // Commande : ouvrir le panel WebView de conversation
+  context.subscriptions.push(
+    vscode.commands.registerCommand('copilot-remote.openPanel', () => {
+      const panel = ConversationPanel.createOrShow(context);
+      // Câbler le handler de prompts WebView → Copilot
+      panel.onPrompt = (text: string) => {
+        const id = Date.now().toString();
+        const { handle, promise } = handlePrompt({
+          text, id,
+          getClient: () => client,
+          getPanel: () => ConversationPanel.currentPanel,
+          outputChannel: outputChannel!,
+        });
+        activePromptHandle = handle;
+        void promise.finally(() => { activePromptHandle = null; });
+      };
+      // Vider l'historique depuis le WebView
+      panel.onHistoryClear = () => {
+        ConversationStore.instance.clear();
+        client?.send({ type: 'history_clear' });
+        sendStatusFull();
+      };
+      // Annuler le streaming depuis le WebView
+      panel.onStop = () => { activePromptHandle?.cancel(); };
+      // Changer le modèle depuis le WebView
+      panel.onModelChange = (model: string) => {
+        ConversationStore.instance.setModel(model);
+        client?.send({ type: 'model_change', model });
+        sendStatusFull();
+      };
+      // Envoyer la liste des modèles disponibles et le modèle actif au WebView
+      void fetchAvailableModels().then(models => {
+        panel.postMessage({ type: 'models_list', models });
+        panel.postMessage({ type: 'model_change', model: ConversationStore.instance.selectedModel });
+      });
+    })
+  );
+
+  // Commande : annuler la génération en cours
+  context.subscriptions.push(
+    vscode.commands.registerCommand('copilot-remote.stopGeneration', () => {
+      activePromptHandle?.cancel();
+    })
+  );
+
   // Reconnexion automatique au démarrage si un token est déjà stocké
   void autoConnect(context);
 }
@@ -42,6 +91,8 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   client?.dispose();
   client = null;
+  // Réinitialiser le singleton pour éviter la persistance d'historique entre rechargements
+  (ConversationStore as unknown as { _instance: undefined })._instance = undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -49,10 +100,13 @@ export function deactivate(): void {
 // ---------------------------------------------------------------------------
 
 async function autoConnect(context: vscode.ExtensionContext): Promise<void> {
+  // Guard : évite une double instanciation si autoConnect est appelé plusieurs fois
+  if (client !== null) { return; }
   const token = await getToken(context.secrets);
-  if (token) {
-    startClient(token, getServerUrl(), context);
-  }
+  if (!token) { return; }
+  // Vérification après l'await car une connexion manuelle peut avoir eu lieu entretemps
+  if (client !== null) { return; }
+  startClient(token, getServerUrl(), context);
 }
 
 async function commandConnect(context: vscode.ExtensionContext): Promise<void> {
@@ -60,7 +114,7 @@ async function commandConnect(context: vscode.ExtensionContext): Promise<void> {
   const currentUrl = getServerUrl();
   const serverUrl = await vscode.window.showInputBox({
     prompt: 'URL WSS du serveur relais',
-    value: currentUrl === 'wss://your-bridge-domain' ? 'wss://copilot.mithrandirea.info/ws/vscode' : currentUrl,
+    value: currentUrl === 'wss://your-bridge-domain' ? '' : currentUrl,
     placeHolder: 'wss://votre-domaine/ws/vscode',
     ignoreFocusOut: true,
     validateInput: (v) => v.startsWith('wss://') ? null : "L'URL doit commencer par wss://",
@@ -118,17 +172,95 @@ function startClient(token: string, serverUrl: string, context: vscode.Extension
   client = new BridgeClient(
     serverUrl,
     token,
-    // Handler des prompts entrants depuis le mobile :
-    // injecter le message dans le chat VS Code en invoquant @remote
-    (text: string, _id: string) => {
-      // Ouvrir le panel chat avec le message pré-rempli
-      void vscode.commands.executeCommand('workbench.action.chat.open', {
-        query: `@remote ${text}`,
+    // Prompt entrant depuis le mobile — ouvrir le panel et traiter via Copilot
+    (text: string, id: string) => {
+      const panel = ConversationPanel.createOrShow(context);
+      // Câbler les handlers sur le panel si ce dernier vient d'être créé
+      panel.onPrompt = (webviewText: string) => {
+        const webviewId = Date.now().toString();
+        const { handle, promise } = handlePrompt({
+          text: webviewText, id: webviewId,
+          getClient: () => client,
+          getPanel: () => ConversationPanel.currentPanel,
+          outputChannel: outputChannel!,
+        });
+        activePromptHandle = handle;
+        void promise.finally(() => { activePromptHandle = null; });
+      };
+      panel.onHistoryClear = () => {
+        ConversationStore.instance.clear();
+        client?.send({ type: 'history_clear' });
+        sendStatusFull();
+      };
+      panel.onStop = () => { activePromptHandle?.cancel(); };
+      panel.onModelChange = (model: string) => {
+        ConversationStore.instance.setModel(model);
+        client?.send({ type: 'model_change', model });
+        sendStatusFull();
+      };
+      const { handle, promise } = handlePrompt({
+        text, id,
+        getClient: () => client,
+        getPanel: () => ConversationPanel.currentPanel,
+        outputChannel: outputChannel!,
       });
+      activePromptHandle = handle;
+      void promise.finally(() => { activePromptHandle = null; });
     },
-    outputChannel!
+    outputChannel!,
+    // mobile_connected → envoyer l'historique au mobile via le bridge + statut enrichi
+    () => {
+      const history = ConversationStore.instance.getAll();
+      client?.send({ type: 'history_sync', messages: [...history] });
+      sendStatusFull();
+    },
+    // history_clear depuis le mobile → vider le store + notifier WebView + écho mobile
+    () => {
+      ConversationStore.instance.clear();
+      ConversationPanel.currentPanel?.postMessage({ type: 'history_clear' });
+      client?.send({ type: 'history_clear' });
+      sendStatusFull();
+    },
+    // stop depuis le mobile → annuler le streaming en cours
+    () => { activePromptHandle?.cancel(); },
+    // model_change depuis le mobile → mettre à jour le store + notifier WebView + statut
+    (model: string) => {
+      ConversationStore.instance.setModel(model);
+      ConversationPanel.currentPanel?.postMessage({ type: 'model_change', model });
+      sendStatusFull();
+    },
+    // auth_ok → envoyer le statut enrichi initial au mobile et au WebView
+    () => { sendStatusFull(); },
   );
   context.subscriptions.push({ dispose: () => { client?.dispose(); } });
   client.connect();
 }
 
+// ---------------------------------------------------------------------------
+// Fonctions utilitaires
+// ---------------------------------------------------------------------------
+
+/**
+ * Retourne la liste dédoublonnée des familles de modèles LLM disponibles via vscode.lm.
+ * Utilisée pour alimenter le dropdown de sélection de modèle.
+ */
+async function fetchAvailableModels(): Promise<string[]> {
+  const models = await vscode.lm.selectChatModels({});
+  const families = [...new Set(models.map(m => m.family))];
+  return families.length > 0 ? families : ['gpt-4o'];
+}
+
+/**
+ * Envoie un status_full au WebView et au bridge avec l'état complet du système.
+ * Appelé après chaque changement d'état significatif (modèle, historique, connexion).
+ */
+function sendStatusFull(): void {
+  const payload = {
+    type: 'status_full' as const,
+    model: ConversationStore.instance.selectedModel,
+    messageCount: ConversationStore.instance.getAll().length,
+    mobileConnected: client?.isConnected() ?? false,
+  };
+  ConversationPanel.currentPanel?.postMessage(payload);
+  client?.send(payload);
+}
