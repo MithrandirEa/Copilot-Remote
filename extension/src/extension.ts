@@ -3,11 +3,12 @@ import { BridgeClient } from './bridgeClient';
 import { createParticipant } from './participant';
 import { getToken, storeToken, deleteToken, getServerUrl } from './config';
 import { ConversationPanel } from './webviewPanel';
-import { handlePrompt } from './copilotEngine';
+import { handlePrompt, PromptHandle } from './copilotEngine';
 import { ConversationStore } from './conversationStore';
 
 let client: BridgeClient | null = null;
 let outputChannel: vscode.OutputChannel | null = null;
+let activePromptHandle: PromptHandle | null = null;
 
 export function activate(context: vscode.ExtensionContext): void {
   outputChannel = vscode.window.createOutputChannel('Copilot Remote');
@@ -45,13 +46,29 @@ export function activate(context: vscode.ExtensionContext): void {
       // Câbler le handler de prompts WebView → Copilot
       panel.onPrompt = (text: string) => {
         const id = Date.now().toString();
-        void handlePrompt({
+        const { handle, promise } = handlePrompt({
           text, id,
           getClient: () => client,
           getPanel: () => ConversationPanel.currentPanel,
           outputChannel: outputChannel!,
         });
+        activePromptHandle = handle;
+        void promise.finally(() => { activePromptHandle = null; });
       };
+      // Vider l'historique depuis le WebView
+      panel.onHistoryClear = () => {
+        ConversationStore.instance.clear();
+        client?.send({ type: 'history_clear' });
+      };
+      // Annuler le streaming depuis le WebView
+      panel.onStop = () => { activePromptHandle?.cancel(); };
+    })
+  );
+
+  // Commande : annuler la génération en cours
+  context.subscriptions.push(
+    vscode.commands.registerCommand('copilot-remote.stopGeneration', () => {
+      activePromptHandle?.cancel();
     })
   );
 
@@ -141,29 +158,46 @@ function startClient(token: string, serverUrl: string, context: vscode.Extension
     // Prompt entrant depuis le mobile — ouvrir le panel et traiter via Copilot
     (text: string, id: string) => {
       const panel = ConversationPanel.createOrShow(context);
-      // Câbler onPrompt sur le panel si ce dernier vient d'être créé
+      // Câbler les handlers sur le panel si ce dernier vient d'être créé
       panel.onPrompt = (webviewText: string) => {
         const webviewId = Date.now().toString();
-        void handlePrompt({
+        const { handle, promise } = handlePrompt({
           text: webviewText, id: webviewId,
           getClient: () => client,
           getPanel: () => ConversationPanel.currentPanel,
           outputChannel: outputChannel!,
         });
+        activePromptHandle = handle;
+        void promise.finally(() => { activePromptHandle = null; });
       };
-      void handlePrompt({
+      panel.onHistoryClear = () => {
+        ConversationStore.instance.clear();
+        client?.send({ type: 'history_clear' });
+      };
+      panel.onStop = () => { activePromptHandle?.cancel(); };
+      const { handle, promise } = handlePrompt({
         text, id,
         getClient: () => client,
         getPanel: () => ConversationPanel.currentPanel,
         outputChannel: outputChannel!,
       });
+      activePromptHandle = handle;
+      void promise.finally(() => { activePromptHandle = null; });
     },
     outputChannel!,
     // mobile_connected → envoyer l'historique au mobile via le bridge
     () => {
       const history = ConversationStore.instance.getAll();
       client?.send({ type: 'history_sync', messages: [...history] });
-    }
+    },
+    // history_clear depuis le mobile → vider le store + notifier WebView + écho mobile
+    () => {
+      ConversationStore.instance.clear();
+      ConversationPanel.currentPanel?.postMessage({ type: 'history_clear' });
+      client?.send({ type: 'history_clear' });
+    },
+    // stop depuis le mobile → annuler le streaming en cours
+    () => { activePromptHandle?.cancel(); },
   );
   context.subscriptions.push({ dispose: () => { client?.dispose(); } });
   client.connect();

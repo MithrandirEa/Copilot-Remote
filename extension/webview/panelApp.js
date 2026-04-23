@@ -41,6 +41,9 @@ const settingsBtn    = document.getElementById('settings-btn');
 const saveConfigBtn  = document.getElementById('save-config-btn');
 const serverUrlInput = document.getElementById('server-url-input');
 const setupError     = document.getElementById('setup-error');
+const clearBtn       = document.getElementById('clear-btn');
+const stopBtn        = document.getElementById('stop-btn');
+const sendBtn        = document.getElementById('send-btn');
 
 // ---------------------------------------------------------------------------
 // Initialisation
@@ -73,6 +76,9 @@ const setupError     = document.getElementById('setup-error');
     showSetupScreen();
   });
 
+  clearBtn.addEventListener('click', onClearHistory);
+  stopBtn.addEventListener('click', () => { vscode.postMessage({ type: 'stop' }); });
+
   saveConfigBtn.addEventListener('click', onSaveConfig);
 })();
 
@@ -92,23 +98,27 @@ window.addEventListener('message', (event) => {
     case 'chunk':
       // Morceau de réponse en streaming
       if (message.id !== currentStreamId) {
-        // Nouvelle réponse : créer une bulle de streaming vide
+        // Nouvelle réponse : créer une bulle de streaming et afficher le bouton Stop
         currentStreamId = message.id;
         streamingText = '';
         streamingMessageEl = appendMessage('assistant', '', true);
+        stopBtn.hidden = false;
+        sendBtn.hidden = true;
       }
       streamingText += message.text;
       updateStreamingMessage(streamingText);
       break;
 
     case 'response_end':
-      // Fin du streaming : finaliser la bulle
+      // Fin du streaming : finaliser la bulle et masquer le bouton Stop
       if (streamingMessageEl) {
         finalizeStreamingMessage(streamingText);
         streamingMessageEl = null;
         streamingText = '';
         currentStreamId = null;
       }
+      stopBtn.hidden = true;
+      sendBtn.hidden = false;
       break;
 
     case 'status':
@@ -122,6 +132,16 @@ window.addEventListener('message', (event) => {
       for (const entry of message.messages) {
         appendMessage(entry.role, entry.text);
       }
+      break;
+
+    case 'history_clear':
+      // L'extension confirme que l'historique a été vidé
+      chatLog.innerHTML = '';
+      stopBtn.hidden = true;
+      sendBtn.hidden = false;
+      streamingMessageEl = null;
+      streamingText = '';
+      currentStreamId = null;
       break;
   }
 });
@@ -177,6 +197,16 @@ function onSaveConfig() {
   // Déléguer la persistance à l'extension (pas de localStorage dans le WebView)
   vscode.postMessage({ type: 'save_config', serverUrl });
   showChatScreen();
+}
+
+// ---------------------------------------------------------------------------
+// Actions utilisateur
+// ---------------------------------------------------------------------------
+
+/** Vider le chat log et notifier l'extension. */
+function onClearHistory() {
+  chatLog.innerHTML = '';
+  vscode.postMessage({ type: 'history_clear' });
 }
 
 // ---------------------------------------------------------------------------

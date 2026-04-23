@@ -213,3 +213,45 @@
   border: 1px solid var(--border);
   color: var(--text-muted);
 }
+
+/* --- Bouton vider l'historique (header) ---------------------------------- */
+#clear-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  height: 32px;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  width: 32px;
+}
+#clear-btn:hover { color: var(--error); border-color: var(--error); }
+
+/* --- Bouton stop (dans #chat-form, visible uniquement pendant le streaming) */
+#stop-btn {
+  align-items: center;
+  background: var(--error);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 44px;
+  justify-content: center;
+  transition: opacity 0.15s;
+  width: 44px;
+}
+#stop-btn:active { opacity: 0.75; }
+
+/* --- Groupe droit du header (status-badge + clear-btn) ------------------- */
+#header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

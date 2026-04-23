@@ -11,7 +11,9 @@ import { ConversationStore } from './conversationStore';
 type WebviewMessage =
   | { type: 'ready' }
   | { type: 'prompt'; text: string }
-  | { type: 'save_config'; serverUrl: string };
+  | { type: 'save_config'; serverUrl: string }
+  | { type: 'history_clear' }   // l'utilisateur WebView vide l'historique
+  | { type: 'stop' };           // l'utilisateur WebView annule le streaming en cours
 
 /** Messages envoyés vers le WebView (postMessage côté extension). */
 export type ExtensionMessage =
@@ -19,7 +21,8 @@ export type ExtensionMessage =
   | { type: 'chunk'; text: string; id: string }
   | { type: 'response_end'; id: string }
   | { type: 'status'; connected: boolean }
-  | { type: 'history_sync'; messages: Array<{ role: 'user' | 'assistant'; text: string; id: string }> };
+  | { type: 'history_sync'; messages: Array<{ role: 'user' | 'assistant'; text: string; id: string }> }
+  | { type: 'history_clear' };  // l'extension notifie le WebView que l'historique a été vidé
 
 // ---------------------------------------------------------------------------
 // Panel WebView (singleton)
@@ -39,6 +42,12 @@ export class ConversationPanel {
 
   /** Callback déclenché à la réception d'un prompt depuis le WebView. */
   public onPrompt: ((text: string) => void) | undefined;
+
+  /** Callback déclenché quand le WebView demande à vider l'historique. */
+  public onHistoryClear: (() => void) | undefined;
+
+  /** Callback déclenché quand le WebView demande l'annulation du streaming. */
+  public onStop: (() => void) | undefined;
 
   // ---------------------------------------------------------------------------
   // Fabrique statique (singleton)
@@ -96,6 +105,16 @@ export class ConversationPanel {
           case 'prompt':
             // Transmettre le prompt à l'extension (traitement Copilot)
             this.onPrompt?.(message.text);
+            break;
+
+          case 'history_clear':
+            // L'utilisateur WebView vide l'historique
+            this.onHistoryClear?.();
+            break;
+
+          case 'stop':
+            // L'utilisateur WebView annule le streaming en cours
+            this.onStop?.();
             break;
 
           case 'save_config':

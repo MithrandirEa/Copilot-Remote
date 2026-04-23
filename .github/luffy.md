@@ -65,14 +65,14 @@ Remplacer le panel Chat intégré de VS Code par un **WebView personnalisé** da
 - [ ] Tests unitaires du WebView panel — Agent(s) : **Chopper** (Phase 7)
 
 ### Phase 3 — Synchronisation bidirectionnelle (F2)
-> Statut : ⬜ À faire  
+> Statut : ✅ Terminé (commit `15a93bf`)  
 > Priorité : **Must-have**
 
-- [ ] `ConversationStore` dans l'extension — source de vérité de l'historique (tableau de messages) — Agent(s) : **Implémentation directe**
-- [ ] Message `history_sync` : lors de la connexion mobile, l'extension envoie l'historique complet — Agent(s) : **Implémentation directe**
-- [ ] Diffusion simultanée des chunks vers le WebView ET le mobile — Agent(s) : **Implémentation directe**
-- [ ] Nouveau type de message `history_sync` dans le bridge FastAPI — Agent(s) : **Implémentation directe**
-- [ ] Tests d'intégration synchronisation — Agent(s) : **Chopper**
+- [x] `ConversationStore` dans l'extension — source de vérité de l'historique (tableau de messages) — Agent(s) : **Law**
+- [x] Message `history_sync` : lors de la connexion mobile, l'extension envoie l'historique complet — Agent(s) : **Law**
+- [x] Diffusion simultanée des chunks vers le WebView ET le mobile — Agent(s) : **Law**
+- [x] Nouveau type de message `history_sync` dans le bridge FastAPI — Agent(s) : **Law**
+- [ ] Tests d'intégration synchronisation — Agent(s) : **Chopper** (Phase 7)
 
 ### Phase 4 — Historique & contrôles (F4 + F5)
 > Statut : ⬜ À faire  

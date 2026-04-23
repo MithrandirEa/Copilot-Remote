@@ -14,7 +14,10 @@
   <!-- Barre de statut -->
   <header id="header">
     <span id="app-title">Copilot Remote</span>
-    <span id="status-badge" class="badge disconnected" aria-live="polite">Déconnecté</span>
+    <div id="header-actions">
+      <span id="status-badge" class="badge disconnected" aria-live="polite">Déconnecté</span>
+      <button id="clear-btn" type="button" aria-label="Vider l'historique" title="Vider l'historique">&#128465;</button>
+    </div>
   </header>
 
   <!-- Écran de configuration (premier lancement) -->
@@ -48,6 +51,7 @@
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
           </svg>
         </button>
+        <button id="stop-btn" type="button" aria-label="Arrêter la génération" hidden>&#9632;</button>
       </form>
       <button id="settings-btn" aria-label="Paramètres">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

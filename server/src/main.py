@@ -7,12 +7,15 @@ Routes WebSocket :
 
 Protocole de messages (JSON) :
   Mobile → VS Code :
-    {"type": "prompt", "text": "...", "id": "<uuid>"}
+    {"type": "prompt",        "text": "...", "id": "<uuid>"}  ← nouveau prompt
+    {"type": "history_clear"}                                  ← vider l'historique
+    {"type": "stop"}                                           ← annuler le streaming
 
   VS Code → Mobile :
     {"type": "response_chunk", "text": "...", "id": "<uuid>"}  ← streaming
     {"type": "response_end",   "id": "<uuid>"}                 ← fin de réponse
     {"type": "history_sync",  "messages": [...]}               ← historique complet
+    {"type": "history_clear"}                                  ← confirmation suppression
 
   Serveur → Mobile (statut) :
     {"type": "status", "vscode_connected": true|false}
@@ -40,9 +43,9 @@ _mobile_ws: WebSocket | None = None
 MAX_MESSAGE_BYTES: int = 64 * 1024  # 64 Ko
 
 # Types de messages autorisés depuis VS Code → mobile (Mihawk — Moyenne)
-_VSCODE_ALLOWED_TYPES = frozenset({"response_chunk", "response_end", "error", "history_sync"})
+_VSCODE_ALLOWED_TYPES = frozenset({"response_chunk", "response_end", "error", "history_sync", "history_clear"})
 # Types de messages autorisés depuis mobile → VS Code
-_MOBILE_ALLOWED_TYPES = frozenset({"prompt"})
+_MOBILE_ALLOWED_TYPES = frozenset({"prompt", "history_clear", "stop"})
 
 
 @app.get("/health")

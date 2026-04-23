@@ -7,13 +7,16 @@ export type IncomingMessage =
   | { type: 'status'; vscode_connected: boolean }
   | { type: 'auth_ok' }
   | { type: 'error'; message: string }
-  | { type: 'mobile_connected' };   // serveur notifie VS Code que le mobile vient de se connecter
+  | { type: 'mobile_connected' }    // serveur notifie VS Code que le mobile vient de se connecter
+  | { type: 'history_clear' }       // mobile demande la suppression de l'historique
+  | { type: 'stop' };               // mobile demande l'annulation du streaming en cours
 
 export type OutgoingMessage =
   | { type: 'auth'; token: string }
   | { type: 'response_chunk'; text: string; id: string }
   | { type: 'response_end'; id: string }
-  | { type: 'history_sync'; messages: Array<{ role: 'user' | 'assistant'; text: string; id: string }> };
+  | { type: 'history_sync'; messages: Array<{ role: 'user' | 'assistant'; text: string; id: string }> }
+  | { type: 'history_clear' };      // propagation ou confirmation de suppression d'historique
 
 type PromptHandler = (text: string, id: string) => void;
 
@@ -28,6 +31,8 @@ export class BridgeClient {
   private disposed = false;
   private readonly outputChannel: vscode.OutputChannel;
   private readonly onMobileConnected: (() => void) | undefined;
+  private readonly onHistoryClear: (() => void) | undefined;
+  private readonly onStop: (() => void) | undefined;
 
   // Délai de reconnexion en ms (exponentiel plafonné à 30s)
   private reconnectDelay = 2000;
@@ -40,10 +45,14 @@ export class BridgeClient {
     private readonly token: string,
     private readonly onPrompt: PromptHandler,
     outputChannel: vscode.OutputChannel,
-    onMobileConnected?: () => void
+    onMobileConnected?: () => void,
+    onHistoryClear?: () => void,
+    onStop?: () => void,
   ) {
     this.outputChannel = outputChannel;
     this.onMobileConnected = onMobileConnected;
+    this.onHistoryClear = onHistoryClear;
+    this.onStop = onStop;
   }
 
   /** Établit la connexion WebSocket. */
@@ -100,6 +109,18 @@ export class BridgeClient {
       if (msg.type === 'mobile_connected') {
         // Le serveur signale qu'un client mobile vient de se connecter
         this.onMobileConnected?.();
+        return;
+      }
+
+      if (msg.type === 'history_clear') {
+        // Le mobile demande la suppression de l'historique
+        this.onHistoryClear?.();
+        return;
+      }
+
+      if (msg.type === 'stop') {
+        // Le mobile demande l'annulation du streaming en cours
+        this.onStop?.();
         return;
       }
 
